@@ -22,6 +22,7 @@
       "package": "jp.forgelabs.cmapass"
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
