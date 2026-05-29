@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { getAIExplanation } from '../lib/claude';
+import { getAIExplanation, isApiKeyConfigured } from '../lib/claude';
 import type { Question } from '../types';
 
 export function useAIExplanation() {
@@ -17,8 +17,12 @@ export function useAIExplanation() {
         question.explanation,
       );
       setExplanation(text);
-    } catch {
-      setError('AI解説の取得に失敗しました。通信環境を確認してください。');
+    } catch (e) {
+      if (e instanceof Error && e.message === 'API_KEY_NOT_SET') {
+        setError('API_KEY_NOT_SET');
+      } else {
+        setError('通信エラーが発生しました。再試行してください。');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -29,5 +33,5 @@ export function useAIExplanation() {
     setError(null);
   }, []);
 
-  return { explanation, isLoading, error, fetchExplanation, reset };
+  return { explanation, isLoading, error, fetchExplanation, reset, isConfigured: isApiKeyConfigured };
 }

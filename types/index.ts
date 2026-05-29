@@ -27,4 +27,5 @@ export interface ProgressStats {
   totalCorrect: number;
   accuracyRate: number; // 0-100
   byCategory: Record<string, { answered: number; correct: number }>;
+  weakQuestionIds: string[]; // 最新回答が不正解だった問題ID
 }

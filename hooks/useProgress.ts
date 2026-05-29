@@ -8,12 +8,26 @@ export function useProgress() {
     totalCorrect: 0,
     accuracyRate: 0,
     byCategory: {},
+    weakQuestionIds: [],
   });
 
   const loadStats = useCallback(async () => {
     await initDatabase();
     const answers = await getAllAnswers();
     const byCategory: ProgressStats['byCategory'] = {};
+
+    // 最新回答が不正解の問題IDを特定
+    const latestByQuestion = new Map<string, { isCorrect: boolean; answeredAt: string }>();
+    for (const a of answers) {
+      const existing = latestByQuestion.get(a.questionId);
+      if (!existing || a.answeredAt > existing.answeredAt) {
+        latestByQuestion.set(a.questionId, { isCorrect: a.isCorrect, answeredAt: a.answeredAt });
+      }
+    }
+    const weakQuestionIds: string[] = [];
+    latestByQuestion.forEach((latest, qId) => {
+      if (!latest.isCorrect) weakQuestionIds.push(qId);
+    });
 
     for (const a of answers) {
       if (!byCategory[a.questionId]) {
@@ -30,6 +44,7 @@ export function useProgress() {
       totalCorrect,
       accuracyRate: totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0,
       byCategory,
+      weakQuestionIds,
     });
   }, []);
 

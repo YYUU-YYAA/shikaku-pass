@@ -1,10 +1,20 @@
 const API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY ?? '';
 
+// プレースホルダーや未設定の場合はfalse
+export const isApiKeyConfigured =
+  API_KEY.length > 20 &&
+  !API_KEY.includes('XXXXXXXXXX') &&
+  API_KEY.startsWith('sk-ant-');
+
 export async function getAIExplanation(
   question: string,
   correctAnswer: string,
   staticExplanation: string,
 ): Promise<string> {
+  if (!isApiKeyConfigured) {
+    throw new Error('API_KEY_NOT_SET');
+  }
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
