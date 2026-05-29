@@ -66,7 +66,7 @@ export default function QuizScreen() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.progress}>{currentIndex + 1} / {QUIZ_SIZE}</Text>
-      <QuestionCard question={current} onAnswer={handleAnswer} disabled={answered} />
+      <QuestionCard key={current.id} question={current} onAnswer={handleAnswer} disabled={answered} />
       {answered && (
         <>
           <View style={styles.staticExplanation}>
