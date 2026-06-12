@@ -7,6 +7,8 @@ import { useProgress } from '../hooks/useProgress';
 import { QUESTIONS } from '../data/questions';
 import { SUBJECT_LABELS, SUBJECT_ICONS, SUBJECT_THEMES } from '../types';
 import type { SubjectKey, ProgressStats } from '../types';
+import { ROLES } from '../data/roles';
+import { RoleCard } from '../components/RoleCard';
 
 const SUBJECTS: SubjectKey[] = ['financial_analysis', 'securities_analysis', 'market_economics'];
 
@@ -165,6 +167,20 @@ export default function HomeScreen() {
             <Text style={styles.examArrow}>→</Text>
           </TouchableOpacity>
 
+          {/* ── キャリアロードマップ ───────────────────── */}
+          <Text style={[styles.sectionLabel, { marginTop: 28 }]}>キャリアから資格を探す</Text>
+          <Text style={styles.roadmapCaption}>
+            あなたの職種・目指す方向から、おすすめの資格ルートを見てみる
+          </Text>
+
+          <View style={styles.roleGrid}>
+            {ROLES.map((role) => (
+              <View key={role.id} style={styles.roleCell}>
+                <RoleCard role={role} highlight={role.id === 'finance'} />
+              </View>
+            ))}
+          </View>
+
         </View>
       </ScrollView>
     </View>
@@ -206,6 +222,11 @@ const styles = StyleSheet.create({
     fontSize: 11, color: '#9CA3AF', fontWeight: '700',
     letterSpacing: 0.8, marginBottom: 12, textTransform: 'uppercase',
   },
+
+  // Career roadmap section
+  roadmapCaption: { fontSize: 12, color: '#6B7BA4', marginTop: -6, marginBottom: 14, lineHeight: 18 },
+  roleGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -5 },
+  roleCell: { width: '50%', paddingHorizontal: 5, marginBottom: 10 },
 
   // Subject cards
   subjectCard: {

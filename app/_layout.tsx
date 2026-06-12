@@ -71,6 +71,20 @@ export default function Layout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="jobs/[roleId]"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="qualifications/[examId]"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
     </Tabs>
   );
 }
