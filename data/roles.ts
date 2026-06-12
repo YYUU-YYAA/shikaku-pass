@@ -75,40 +75,192 @@ export interface ExamDefinition {
   name: string;        // 表示名 例: "CMA（証券アナリスト）"
   shortName: string;   // 例: "CMA Pass"
   implemented: boolean; // 問題データが実装済みか（false="準備中"バッジ表示用）
+  /** 学習時間の目安。例: "200〜350時間（3級知識前提なら200〜300時間）" */
+  studyHours?: string;
+  /** 難易度感。例: "中級" */
+  difficulty?: string;
+  /** 前提関係。例: "3級内容の理解が前提（受験資格自体は不要）" */
+  prerequisite?: string;
+  /** 実務・転職市場での評価。career-roadmaps.md 0章・9章の調査結果を要約 */
+  evaluation?: string;
 }
 
 /** 資格マスタ。ロードマップに登場する全資格を登録する。 */
 export const EXAMS: ExamDefinition[] = [
-  { id: 'cma',                 name: 'CMA（証券アナリスト）',          shortName: 'CMA',           implemented: true },
-  { id: 'bookkeeping3',        name: '日商簿記3級',                    shortName: '簿記3級',        implemented: false },
-  { id: 'bookkeeping2',        name: '日商簿記2級',                    shortName: '簿記2級',        implemented: false },
+  {
+    id: 'cma', name: 'CMA（証券アナリスト）', shortName: 'CMA', implemented: true,
+    studyHours: '1次レベル平均200時間程度（科目ごとに通信講座の受講が必要）',
+    difficulty: '中級（試験自体の合格率は高いが、受験資格のハードルが別途ある）',
+    prerequisite: '日本証券アナリスト協会の通信講座受講が受験資格として必須。簿記2級レベルの財務知識があると1次レベルの学習がスムーズ',
+    evaluation: '金融・証券業界で広く認知。2次レベル＋実務経験で正会員（アナリスト資格）に到達するまで2〜4年規模',
+  },
+  {
+    id: 'bookkeeping3', name: '日商簿記3級', shortName: '簿記3級', implemented: false,
+    studyHours: '50〜150時間',
+    difficulty: '入門',
+    prerequisite: 'なし',
+    evaluation: '「会計の言葉」を知っている証明。経理未経験者の最低ライン',
+  },
+  {
+    id: 'bookkeeping2', name: '日商簿記2級', shortName: '簿記2級', implemented: false,
+    studyHours: '200〜350時間（3級知識前提なら200〜300時間）',
+    difficulty: '中級',
+    prerequisite: '3級内容の理解が前提（受験資格自体は不要）',
+    evaluation: '経理職の求人で「歓迎条件」〜「必須条件」に挙がることが多い、実質的な業界標準ライン',
+  },
   { id: 'bookkeeping1',        name: '日商簿記1級',                    shortName: '簿記1級',        implemented: false },
-  { id: 'fp3',                 name: 'FP技能検定3級',                  shortName: 'FP3級',          implemented: false },
-  { id: 'fp2',                 name: 'FP技能検定2級(AFP)',             shortName: 'FP2級',          implemented: false },
-  { id: 'cfp',                 name: 'CFP',                            shortName: 'CFP',           implemented: false },
-  { id: 'bizlaw3',             name: 'ビジネス実務法務検定3級',         shortName: 'ビジ法3級',      implemented: false },
-  { id: 'bizlaw2',             name: 'ビジネス実務法務検定2級',         shortName: 'ビジ法2級',      implemented: false },
-  { id: 'bizlaw1',             name: 'ビジネス実務法務検定1級',         shortName: 'ビジ法1級',      implemented: false },
-  { id: 'gyoseishoshi',        name: '行政書士',                       shortName: '行政書士',       implemented: false },
-  { id: 'sharoushi',           name: '社会保険労務士',                  shortName: '社労士',         implemented: false },
-  { id: 'itpassport',          name: 'ITパスポート',                   shortName: 'ITパスポート',    implemented: false },
-  { id: 'fe',                  name: '基本情報技術者',                  shortName: '基本情報',       implemented: false },
-  { id: 'ap',                  name: '応用情報技術者',                  shortName: '応用情報',       implemented: false },
-  { id: 'cloud',               name: 'AWS等クラウド資格',               shortName: 'クラウド資格',    implemented: false },
+  {
+    id: 'fp3', name: 'FP技能検定3級', shortName: 'FP3級', implemented: false,
+    studyHours: '80〜150時間',
+    difficulty: '入門',
+    prerequisite: 'なし（簿記と並走可能）',
+    evaluation: '「お金の知識」の入門として広く認知。転職での加点効果は限定的だが学習効果は高い',
+  },
+  {
+    id: 'fp2', name: 'FP技能検定2級(AFP)', shortName: 'FP2級', implemented: false,
+    studyHours: '150〜300時間',
+    difficulty: '中級',
+    prerequisite: '3級相当の知識があると効率的（AFP認定研修＋FP2級合格でAFP登録可）',
+    evaluation: '金融・保険・不動産営業職では評価対象になることが多い',
+  },
+  {
+    id: 'cfp', name: 'CFP', shortName: 'CFP', implemented: false,
+    studyHours: '1課目30〜80時間×6課目（延べ300時間以上）',
+    difficulty: '上級',
+    prerequisite: 'AFP登録者であることが受験要件',
+    evaluation: 'FP1級相当の上位資格。独立系FPやプライベートバンカー志向で評価',
+  },
+  {
+    id: 'bizlaw3', name: 'ビジネス実務法務検定3級', shortName: 'ビジ法3級', implemented: false,
+    studyHours: '数十時間規模（入門）',
+    difficulty: '入門',
+    prerequisite: 'なし',
+    evaluation: '法務の「最初の一歩」。アピール材料としては弱め',
+  },
+  {
+    id: 'bizlaw2', name: 'ビジネス実務法務検定2級', shortName: 'ビジ法2級', implemented: false,
+    studyHours: '100時間前後',
+    difficulty: '中級',
+    prerequisite: '3級内容の理解が前提',
+    evaluation: '法務未経験者が転職時に提示する資格として一定の評価。合格率20〜40%程度',
+  },
+  {
+    id: 'bizlaw1', name: 'ビジネス実務法務検定1級', shortName: 'ビジ法1級', implemented: false,
+    studyHours: '約250時間',
+    difficulty: '上級（国家資格に準ずる難関）',
+    prerequisite: '2級レベルの知識が前提',
+    evaluation: '法律系国家資格に挑戦できるレベルの証明として評価される',
+  },
+  {
+    id: 'gyoseishoshi', name: '行政書士', shortName: '行政書士', implemented: false,
+    studyHours: '600〜800時間',
+    difficulty: '難関（国家資格）',
+    prerequisite: 'なし（誰でも受験可）',
+    evaluation: '法律系国家資格の「登竜門」。契約書作成・チェック業務で専門性を発揮できる',
+  },
+  {
+    id: 'sharoushi', name: '社会保険労務士', shortName: '社労士', implemented: false,
+    studyHours: '800〜1,000時間',
+    difficulty: '難関（国家資格、行政書士より難）',
+    prerequisite: 'なし（受験資格に学歴等の制限あり）',
+    evaluation: '人事・労務領域の専門資格。法務×人事の複合キャリアで評価',
+  },
+  {
+    id: 'itpassport', name: 'ITパスポート', shortName: 'ITパスポート', implemented: false,
+    studyHours: '100〜200時間',
+    difficulty: '入門',
+    prerequisite: 'なし',
+    evaluation: '「社会人の基礎免許」的位置づけ。IT・経営・法務の基礎を広く浅くカバー',
+  },
+  {
+    id: 'fe', name: '基本情報技術者', shortName: '基本情報', implemented: false,
+    studyHours: 'ITパスポート知識ありで+200〜300時間／未経験から500時間程度',
+    difficulty: '中級',
+    prerequisite: 'ITパスポートの知識があるとスムーズ（必須ではない）',
+    evaluation: 'IT職の未経験転職で説得力を持つ「実質スタートライン」。合格率約50%',
+  },
+  {
+    id: 'ap', name: '応用情報技術者', shortName: '応用情報', implemented: false,
+    studyHours: 'FE合格者で追加学習、未経験は基本情報の2倍程度の難易度感',
+    difficulty: '中級〜上級',
+    prerequisite: 'FE合格者向けの位置づけ（必須ではないが推奨）',
+    evaluation: '社内SEとして一定のポジションを期待できるレベル',
+  },
+  {
+    id: 'cloud', name: 'AWS等クラウド資格', shortName: 'クラウド資格', implemented: false,
+    studyHours: '資格ごとに数十〜100時間規模',
+    difficulty: '入門〜中級（資格により変動）',
+    prerequisite: 'クラウド未経験はCCP（基礎）から、ある程度経験があればSAAから',
+    evaluation: 'クラウド業務の実務直結資格。FE/AP取得後の実務強化として人気',
+  },
   { id: 'sc',                  name: '情報処理安全確保支援士',           shortName: '情報処理安全確保支援士', implemented: false },
   { id: 'pmp',                 name: 'PMP',                            shortName: 'PMP',            implemented: false },
-  { id: 'shoukiboshindanshi',  name: '中小企業診断士(1次)',             shortName: '中小企業診断士1次', implemented: false },
+  {
+    id: 'shoukiboshindanshi', name: '中小企業診断士(1次)', shortName: '中小企業診断士1次', implemented: false,
+    studyHours: '約800〜1,000時間（簿記2級知識があれば財務・会計科目の負担が軽減）',
+    difficulty: '難関',
+    prerequisite: '簿記2級レベルの知識があると「財務・会計」「事例IV」の負担が大幅に下がる',
+    evaluation: '経営全体を見る力の証明。企業内診断士として経営企画部門への異動・昇進に活用されるケースが多い',
+  },
   { id: 'shoukiboshindanshi2', name: '中小企業診断士(2次)',             shortName: '中小企業診断士2次', implemented: false },
   { id: 'zeirishi',            name: '税理士',                         shortName: '税理士',         implemented: false },
   { id: 'cfa',                 name: 'CFA（米国証券アナリスト）',       shortName: 'CFA',           implemented: false },
-  { id: 'toeic',               name: 'TOEIC',                          shortName: 'TOEIC',          implemented: false },
-  { id: 'kikenbutsu4',         name: '危険物取扱者 乙種4類',            shortName: '危険物乙4',      implemented: false },
-  { id: 'kikenbutsu_ko',       name: '危険物取扱者(甲種)',              shortName: '危険物甲種',     implemented: false },
-  { id: 'g_kentei',            name: 'G検定（JDLA Deep Learning for GENERAL）', shortName: 'G検定',  implemented: false },
-  { id: 'e_shikaku',           name: 'E資格（JDLA Deep Learning for ENGINEER）', shortName: 'E資格', implemented: false },
-  { id: 'stat2',               name: '統計検定2級',                    shortName: '統計検定2級',     implemented: false },
-  { id: 'stat_pre1',           name: '統計検定準1級',                  shortName: '統計検定準1級',   implemented: false },
-  { id: 'cloud_ai',            name: 'AWS等クラウドのAI/ML資格',        shortName: 'クラウドAI資格',  implemented: false },
+  {
+    id: 'toeic', name: 'TOEIC', shortName: 'TOEIC', implemented: false,
+    studyHours: '目標スコアにより大きく変動',
+    difficulty: '可変',
+    prerequisite: 'なし',
+    evaluation: 'グローバル職・外資系では事実上必須ライン（経営企画では850〜900点が目安と言われることが多い）',
+  },
+  {
+    id: 'kikenbutsu4', name: '危険物取扱者 乙種4類', shortName: '危険物乙4', implemented: false,
+    studyHours: '40〜60時間（通信講座利用で20〜30時間も）',
+    difficulty: '入門。合格率31.9%',
+    prerequisite: 'なし',
+    evaluation: '化学系メーカー等で広く必要とされる国家資格。ガソリン・灯油等の第4類危険物を取り扱える',
+  },
+  {
+    id: 'kikenbutsu_ko', name: '危険物取扱者(甲種)', shortName: '危険物甲種', implemented: false,
+    studyHours: '100〜120時間',
+    difficulty: '中級。合格率34.0%だが出題範囲は専門的（物理・化学）',
+    prerequisite: '乙種4類等の取得・一定の実務経験等で受験資格を満たす経路がある',
+    evaluation: '全類の危険物を取り扱える上位資格。化学系メーカーの研究開発・製造現場で乙4の上位資格として評価される',
+  },
+  {
+    id: 'g_kentei', name: 'G検定（JDLA Deep Learning for GENERAL）', shortName: 'G検定', implemented: false,
+    studyHours: '30〜50時間が最多（次点15〜30時間）',
+    difficulty: '入門〜中級。JDLA公式も「比較的取り組みやすい」と明記',
+    prerequisite: 'なし（誰でも受験可）',
+    evaluation: 'AIを「使う側」の基礎知識の証明として、エンジニアだけでなく企画・ビジネス職でも広く評価される。E資格への足がかりとしても位置づけられている',
+  },
+  {
+    id: 'e_shikaku', name: 'E資格（JDLA Deep Learning for ENGINEER）', shortName: 'E資格', implemented: false,
+    studyHours: '200時間以上が目安（AWS ML-Specialty等と並ぶ高負荷帯）',
+    difficulty: '上級。AI実装検定の中でも高難度',
+    prerequisite: 'JDLA認定教育プログラムを試験日の過去2年以内に修了していることが受験資格として必須',
+    evaluation: '深層学習の理論から実装までを問う、エンジニア向けの最高難度資格。G検定取得後にステップアップする経路が想定されている',
+  },
+  {
+    id: 'stat2', name: '統計検定2級', shortName: '統計検定2級', implemented: false,
+    studyHours: '50〜80時間',
+    difficulty: '中級（大学教養1〜2年レベル）',
+    prerequisite: 'なし',
+    evaluation: 'データサイエンス分野で「仕事で使える」とみなされる最低ラインとされる',
+  },
+  {
+    id: 'stat_pre1', name: '統計検定準1級', shortName: '統計検定準1級', implemented: false,
+    studyHours: '300時間程度（2級の約5倍）',
+    difficulty: '上級（大学専門課程3〜4年レベル）',
+    prerequisite: '2級レベルの理解があると効率的',
+    evaluation: '機械学習関連の知識との関連性が強いとされ、データサイエンティスト志向では2級の先の到達点として位置づけられる',
+  },
+  {
+    id: 'cloud_ai', name: 'AWS等クラウドのAI/ML資格', shortName: 'クラウドAI資格', implemented: false,
+    studyHours: 'AIプラクティショナー(数十時間)→MLアソシエイト(100時間前後)→ML-Specialty(200時間以上)の階層',
+    difficulty: '入門〜AWS資格の難易度4分類の中で最高難度（資格により変動）',
+    prerequisite: 'クラウド実務経験があるとスムーズ。ML-Specialtyは実務経験を前提とすることが多い',
+    evaluation: 'AIモデルを「作る」力（E資格）に加えて、クラウド上で「動かす・運用する」実務力を示す資格群。生成AI時代に対応した実務直結資格',
+  },
 ];
 
 // ---------------------------------------------------------------------
