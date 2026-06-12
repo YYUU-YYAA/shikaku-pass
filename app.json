@@ -12,8 +12,9 @@
       "bundleIdentifier": "jp.forgelabs.cmapass"
     },
     "android": {
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#1A1A2E",
+        "backgroundColor": "#FED003",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -29,6 +30,12 @@
       "expo-sqlite",
       "expo-router",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4d530302-2bb0-47dc-8433-baeb12c247b8"
+      }
+    }
   }
 }

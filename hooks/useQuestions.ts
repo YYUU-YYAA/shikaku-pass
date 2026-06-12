@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { QUESTIONS } from '../data/questions';
-import type { Question } from '../types';
+import type { Question, SubjectKey } from '../types';
 
 interface UseQuestionsOptions {
+  subject?: SubjectKey | 'all';
   category?: string;
   difficulty?: 1 | 2 | 3;
 }
@@ -10,6 +11,9 @@ interface UseQuestionsOptions {
 export function useQuestions(options: UseQuestionsOptions = {}) {
   const questions = useMemo(() => {
     let filtered = QUESTIONS;
+    if (options.subject && options.subject !== 'all') {
+      filtered = filtered.filter(q => q.subject === options.subject);
+    }
     if (options.category) {
       filtered = filtered.filter(q => q.category === options.category);
     }
@@ -17,7 +21,7 @@ export function useQuestions(options: UseQuestionsOptions = {}) {
       filtered = filtered.filter(q => q.difficulty === options.difficulty);
     }
     return filtered;
-  }, [options.category, options.difficulty]);
+  }, [options.subject, options.category, options.difficulty]);
 
   function getRandomQuestions(count: number): Question[] {
     const shuffled = [...questions].sort(() => Math.random() - 0.5);

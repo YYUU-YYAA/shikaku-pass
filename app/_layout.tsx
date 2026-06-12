@@ -6,29 +6,69 @@ export default function Layout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: '#E94560',
-        headerStyle: { backgroundColor: '#1A1A2E' },
+        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarStyle: {
+          backgroundColor: '#FFF',
+          borderTopColor: '#F0F0F0',
+          height: 60,
+          paddingBottom: 8,
+        },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+        headerStyle: { backgroundColor: '#0B1437' },
         headerTintColor: '#FFF',
+        headerTitleStyle: { fontWeight: '800' },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'ホーム',
-          tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />,
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="quiz"
         options={{
           title: '演習',
-          tabBarIcon: ({ color }) => <Ionicons name="pencil" size={24} color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="progress"
         options={{
           title: '進捗',
-          tabBarIcon: ({ color }) => <Ionicons name="bar-chart" size={24} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="saved"
+        options={{
+          title: '保存',
+          tabBarIcon: ({ color, size }) => <Ionicons name="bookmark" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="glossary"
+        options={{
+          title: '用語集',
+          tabBarIcon: ({ color, size }) => <Ionicons name="book" size={size} color={color} />,
+        }}
+      />
+
+      {/* Non-tab navigable screens */}
+      <Tabs.Screen
+        name="subject/[key]"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="mock-exam"
+        options={{
+          title: '模擬試験',
+          href: null,
         }}
       />
     </Tabs>

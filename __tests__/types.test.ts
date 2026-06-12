@@ -4,7 +4,7 @@ describe('types', () => {
   it('Question has required fields', () => {
     const q: Question = {
       id: 'q1',
-      subject: 'financial_statements',
+      subject: 'financial_analysis',
       category: '流動性比率',
       content: '流動比率を計算せよ',
       options: [

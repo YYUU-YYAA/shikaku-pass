@@ -40,3 +40,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# secrets & signing
+google-play-key.json
+*.keystore

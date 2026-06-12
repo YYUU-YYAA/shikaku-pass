@@ -8,6 +8,7 @@ jest.mock('../lib/database', () => ({
     { questionId: 'fs-001', selectedAnswer: 'C', isCorrect: true, answeredAt: '2026-05-01', timeSpentSeconds: 10 },
     { questionId: 'fs-002', selectedAnswer: 'A', isCorrect: false, answeredAt: '2026-05-01', timeSpentSeconds: 20 },
   ]),
+  getSavedQuestions: jest.fn().mockResolvedValue([]),
 }));
 
 describe('useProgress', () => {
