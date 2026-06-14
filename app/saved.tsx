@@ -3,9 +3,12 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import TopTabBar from '../components/TopTabBar';
 import { useSavedQuestions } from '../hooks/useSavedQuestions';
 import { QUESTIONS } from '../data/questions';
-import type { SaveType } from '../types';
+import { getExamIdForSubject, getSubjectsForExam } from '../data/examSubjects';
+import { EXAMS } from '../data/roles';
+import type { Question, SaveType } from '../types';
 
 type Tab = 'memo' | 'retry';
 
@@ -36,6 +39,15 @@ export default function SavedScreen() {
     .map(s => QUESTIONS.find(q => q.id === s.questionId))
     .filter((q): q is NonNullable<typeof q> => q !== undefined);
 
+  // Round12論点G: 資格(examId)ごとにグループ化。
+  // 表示順はdata/roles.tsのEXAMS配列順、保存問題が1件以上ある資格のみ表示。
+  const groups = EXAMS
+    .map(exam => ({
+      exam,
+      questions: questionList.filter(q => (getExamIdForSubject(q.subject) ?? 'cma') === exam.id),
+    }))
+    .filter(g => g.questions.length > 0);
+
   function confirmRemove(questionId: string) {
     Alert.alert(
       '削除確認',
@@ -49,6 +61,7 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.container}>
+      <TopTabBar />
       {/* Tab selector */}
       <View style={styles.tabBar}>
         {(['memo', 'retry'] as Tab[]).map(tab => (
@@ -83,7 +96,7 @@ export default function SavedScreen() {
           </View>
         ) : (
           <>
-            {/* Quiz all button */}
+            {/* Quiz all button（全資格まとめて） */}
             <TouchableOpacity
               style={styles.quizAllButton}
               onPress={() => router.push({ pathname: '/quiz', params: { mode: cfg.quizMode } })}
@@ -93,22 +106,51 @@ export default function SavedScreen() {
               </Text>
             </TouchableOpacity>
 
-            {/* Question list */}
-            {questionList.map(q => (
-              <View key={q.id} style={styles.questionCard}>
-                <View style={styles.questionHeader}>
-                  <Text style={styles.questionSubject}>{q.category}</Text>
-                  <TouchableOpacity onPress={() => confirmRemove(q.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Text style={styles.removeBtn}>✕</Text>
+            {/* 資格ごとのグループ表示（Round12論点G） */}
+            {groups.map(({ exam, questions }) => {
+              const groupIcon = getSubjectsForExam(exam.id)[0]?.icon ?? '📘';
+              return (
+                <View key={exam.id} style={styles.groupSection}>
+                  <View style={styles.groupHeader}>
+                    <Text style={styles.groupHeaderText}>
+                      {groupIcon} {exam.shortName} → 保存されている問題（{questions.length}問）
+                    </Text>
+                  </View>
+
+                  {/* グループ単位のまとめて演習ボタン（Round12論点I） */}
+                  <TouchableOpacity
+                    style={styles.quizGroupButton}
+                    onPress={() => router.push({ pathname: '/quiz', params: { mode: cfg.quizMode, examId: exam.id } })}
+                  >
+                    <Text style={styles.quizGroupText}>
+                      {cfg.icon} {exam.shortName}の{questions.length}問をまとめて演習する
+                    </Text>
                   </TouchableOpacity>
+
+                  {/* Question list（Round12論点H: タップで1問演習） */}
+                  {questions.map((q: Question) => (
+                    <TouchableOpacity
+                      key={q.id}
+                      style={styles.questionCard}
+                      activeOpacity={0.7}
+                      onPress={() => router.push({ pathname: '/quiz', params: { mode: 'single', questionId: q.id } })}
+                    >
+                      <View style={styles.questionHeader}>
+                        <Text style={styles.questionSubject}>{q.category}</Text>
+                        <TouchableOpacity onPress={() => confirmRemove(q.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                          <Text style={styles.removeBtn}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={styles.questionContent} numberOfLines={3}>{q.content}</Text>
+                      <View style={styles.questionFooter}>
+                        <Text style={styles.questionId}>{q.id}</Text>
+                        <Text style={styles.difficultyDot}>{'★'.repeat(q.difficulty)}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-                <Text style={styles.questionContent} numberOfLines={3}>{q.content}</Text>
-                <View style={styles.questionFooter}>
-                  <Text style={styles.questionId}>{q.id}</Text>
-                  <Text style={styles.difficultyDot}>{'★'.repeat(q.difficulty)}</Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </>
         )}
       </ScrollView>
@@ -149,6 +191,16 @@ const styles = StyleSheet.create({
     alignItems: 'center', marginBottom: 16,
   },
   quizAllText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+
+  groupSection: { marginBottom: 20 },
+  groupHeader: { marginBottom: 8 },
+  groupHeaderText: { fontSize: 14, fontWeight: '700', color: '#1A1A2E' },
+
+  quizGroupButton: {
+    backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E94560',
+    paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginBottom: 10,
+  },
+  quizGroupText: { color: '#E94560', fontWeight: '700', fontSize: 13 },
 
   questionCard: {
     backgroundColor: '#FFF', borderRadius: 10, padding: 14, marginBottom: 10,

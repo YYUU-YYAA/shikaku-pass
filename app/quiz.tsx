@@ -9,8 +9,8 @@ import { useSavedQuestions } from '../hooks/useSavedQuestions';
 import { QuestionCard } from '../components/QuestionCard';
 import { AIExplanation } from '../components/AIExplanation';
 import { QUESTIONS } from '../data/questions';
-import { SUBJECT_LABELS } from '../types';
-import type { Question, SubjectKey, SaveType } from '../types';
+import { getSubjectMeta, getExamIdForSubject } from '../data/examSubjects';
+import type { Question, SaveType } from '../types';
 
 const QUIZ_SIZE   = 10;
 const REVIEW_MAX  = 20;
@@ -28,7 +28,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function QuizScreen() {
-  const { mode, subject, category, status } = useLocalSearchParams<{ mode?: string; subject?: string; category?: string; status?: string }>();
+  const { mode, subject, category, status, examId, questionId } = useLocalSearchParams<{ mode?: string; subject?: string; category?: string; status?: string; examId?: string; questionId?: string }>();
   const router = useRouter();
 
   const isReviewMode = mode === 'review';
@@ -36,8 +36,10 @@ export default function QuizScreen() {
   const isRetryMode  = mode === 'retry';
   const isSavedMode  = isMemoMode || isRetryMode;
   const isStatusMode = status === 'unanswered' || status === 'correct' || status === 'incorrect';
+  const isSingleMode = mode === 'single' && !!questionId;
+  const examIdFilter = (examId && examId !== '') ? examId : undefined;
 
-  const subjectFilter  = (subject && subject !== 'all') ? subject as SubjectKey : undefined;
+  const subjectFilter  = (subject && subject !== 'all') ? subject : undefined;
   const categoryFilter = (category && category !== '') ? category : undefined;
 
   const { getRandomQuestions } = useQuestions({ subject: subjectFilter ?? 'all', category: categoryFilter });
@@ -47,6 +49,10 @@ export default function QuizScreen() {
   // ── Question list initialization ─────────────────────���──────────────────────
   function buildNormalQuestions() {
     return shuffle(getRandomQuestions(QUIZ_SIZE));
+  }
+
+  function buildSingleQuestion() {
+    return QUESTIONS.filter(q => q.id === questionId);
   }
 
   function buildStatusQuestions() {
@@ -60,7 +66,9 @@ export default function QuizScreen() {
   }
 
   const [questions, setQuestions] = useState<Question[] | null>(
-    isReviewMode || isSavedMode || isStatusMode ? null : buildNormalQuestions(),
+    isReviewMode || isSavedMode || isStatusMode ? null
+      : isSingleMode ? buildSingleQuestion()
+      : buildNormalQuestions(),
   );
   const [initialized, setInitialized] = useState(!(isReviewMode || isSavedMode || isStatusMode));
 
@@ -90,11 +98,14 @@ export default function QuizScreen() {
         setInitialized(true);
         return;
       }
-      const qs = QUESTIONS.filter(q => ids.includes(q.id));
+      let qs = QUESTIONS.filter(q => ids.includes(q.id));
+      if (examIdFilter) {
+        qs = qs.filter(q => getExamIdForSubject(q.subject) === examIdFilter);
+      }
       setQuestions(shuffle(qs).slice(0, SAVED_MAX));
       setInitialized(true);
     }
-  }, [isReviewMode, isSavedMode, isStatusMode, isMemoMode, initialized,
+  }, [isReviewMode, isSavedMode, isStatusMode, isMemoMode, initialized, examIdFilter,
       stats.weakQuestionIds, stats.correctQuestionIds, stats.totalAnswered, loaded, saved]);
 
   // ── Quiz state ──────────────────────────────────────────────────────────────
@@ -107,12 +118,34 @@ export default function QuizScreen() {
   const [finished, setFinished]               = useState(false);
   const startTime = useRef(Date.now());
 
-  const subjectTitle = subjectFilter ? SUBJECT_LABELS[subjectFilter] : '全科目';
-  const modeLabel = isReviewMode ? '苦手問題' : isMemoMode ? '📌 念のため保存' : isRetryMode ? '🔁 苦手リスト'
+  const subjectTitle = subjectFilter ? (getSubjectMeta(subjectFilter)?.label ?? subjectFilter) : '全科目';
+  const modeLabel = isSingleMode ? '1問演習'
+    : isReviewMode ? '苦手問題' : isMemoMode ? '📌 念のため保存' : isRetryMode ? '🔁 苦手リスト'
     : isStatusMode ? `${subjectTitle}・${STATUS_LABELS[status as string]}`
     : categoryFilter ? categoryFilter : subjectTitle;
 
-  // ── Loading / empty states ───────────────────────��─────────────────────────
+  // ── 「戻る」「やめる」の遷移先（フィードバック#3/#7共通ロジック） ────────────────
+  // 期待動作: 演習の科目選択画面（/subject/[key]）に戻る。科目未指定の場合は
+  // 元の画面（保存リスト/進捗/ホーム）に戻る。
+  // Round12論点H: 1問演習モード（/saved からの遷移）は常に/savedへ戻る。
+  function goBack() {
+    if (isSingleMode) {
+      router.push('/saved');
+    } else if (subjectFilter) {
+      router.push({
+        pathname: '/subject/[key]',
+        params: { key: subjectFilter, ...(examId ? { examId } : {}) },
+      });
+    } else if (isSavedMode) {
+      router.push('/saved');
+    } else if (isReviewMode) {
+      router.push('/progress');
+    } else {
+      router.push('/');
+    }
+  }
+
+  // ── Loading / empty states ──────────────────────────────────────────────────
   if (!initialized || questions === null) {
     return (
       <View style={styles.center}>
@@ -123,7 +156,8 @@ export default function QuizScreen() {
   }
 
   if (questions.length === 0) {
-    const emptyTitle = isReviewMode ? '苦手問題はありません！'
+    const emptyTitle = isSingleMode ? '問題が見つかりませんでした'
+      : isReviewMode ? '苦手問題はありません！'
       : isSavedMode ? '保存済み問題がありません'
       : isStatusMode ? (
           status === 'unanswered' ? 'すべて解答済みです！'
@@ -131,7 +165,8 @@ export default function QuizScreen() {
           : '不正解の問題はありません！'
         )
       : '問題がありません';
-    const emptyText = isReviewMode ? 'すべての問題に正解しています。'
+    const emptyText = isSingleMode ? '保存リストに戻ってください。'
+      : isReviewMode ? 'すべての問題に正解しています。'
       : isSavedMode ? '問題を保存すると演習できます。'
       : isStatusMode ? (
           status === 'unanswered' ? 'この科目はすべて解答済みです。'
@@ -147,7 +182,7 @@ export default function QuizScreen() {
         <Text style={styles.emptyIcon}>{emptyIcon}</Text>
         <Text style={styles.emptyTitle}>{emptyTitle}</Text>
         <Text style={styles.emptyText}>{emptyText}</Text>
-        <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.button} onPress={goBack}>
           <Text style={styles.buttonText}>戻る</Text>
         </TouchableOpacity>
       </View>
@@ -175,6 +210,9 @@ export default function QuizScreen() {
     });
     if (!correct) {
       await saveQuestion(current.id, 'retry');
+    } else if (isSaved(current.id, 'retry')) {
+      // 苦手リストに入っている問題に再度正解したら自動的にリストから外す（フィードバック#4）
+      await removeQuestion(current.id, 'retry');
     }
   }
 
@@ -193,14 +231,20 @@ export default function QuizScreen() {
   function resetQuiz() {
     setCurrentIndex(0); setAnswered(false); setIsCorrect(false);
     setSelectedKey(null); setFinished(false); setCorrectCount(0); setConsecutiveWrong(0);
-    if (isReviewMode) {
+    if (isSingleMode) {
+      setQuestions(buildSingleQuestion());
+    } else if (isReviewMode) {
       setQuestions(shuffle(QUESTIONS.filter(q => stats.weakQuestionIds.includes(q.id))).slice(0, REVIEW_MAX));
     } else if (isStatusMode) {
       setQuestions(buildStatusQuestions());
     } else if (isSavedMode) {
       const saveType: SaveType = isMemoMode ? 'memo' : 'retry';
       const ids = saved.filter(s => s.type === saveType).map(s => s.questionId);
-      setQuestions(shuffle(QUESTIONS.filter(q => ids.includes(q.id))).slice(0, SAVED_MAX));
+      let qs = QUESTIONS.filter(q => ids.includes(q.id));
+      if (examIdFilter) {
+        qs = qs.filter(q => getExamIdForSubject(q.subject) === examIdFilter);
+      }
+      setQuestions(shuffle(qs).slice(0, SAVED_MAX));
     } else {
       setQuestions(shuffle(getRandomQuestions(QUIZ_SIZE)));
     }
@@ -227,7 +271,7 @@ export default function QuizScreen() {
         <TouchableOpacity style={styles.button} onPress={resetQuiz}>
           <Text style={styles.buttonText}>もう一度</Text>
         </TouchableOpacity>
-        {!isReviewMode && !isSavedMode && stats.weakQuestionIds.length > 0 && (
+        {!isReviewMode && !isSavedMode && !isSingleMode && stats.weakQuestionIds.length > 0 && (
           <TouchableOpacity
             style={[styles.button, { backgroundColor: '#E94560', marginTop: 12 }]}
             onPress={() => {
@@ -239,7 +283,7 @@ export default function QuizScreen() {
             <Text style={styles.buttonText}>苦手問題を復習 ({stats.weakQuestionIds.length}問)</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={[styles.button, styles.homeButton]} onPress={() => router.back()}>
+        <TouchableOpacity style={[styles.button, styles.homeButton]} onPress={goBack}>
           <Text style={styles.buttonText}>戻る</Text>
         </TouchableOpacity>
       </View>
@@ -251,8 +295,15 @@ export default function QuizScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Progress */}
       <View style={styles.progressRow}>
-        <Text style={styles.progressSubject}>{modeLabel}</Text>
-        <Text style={styles.progressText}>{currentIndex + 1} / {total}</Text>
+        <View style={styles.progressHeaderRow}>
+          <View style={styles.progressHeaderText}>
+            <Text style={styles.progressSubject}>{modeLabel}</Text>
+            <Text style={styles.progressText}>{currentIndex + 1} / {total}</Text>
+          </View>
+          <TouchableOpacity style={styles.quitBtn} onPress={goBack}>
+            <Text style={styles.quitBtnText}>✕ やめる</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${(currentIndex / total) * 100}%` as any }]} />
         </View>
@@ -326,10 +377,14 @@ const styles = StyleSheet.create({
   emptyText:   { fontSize: 14, color: '#666', marginBottom: 32 },
 
   progressRow:    { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
+  progressHeaderRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  progressHeaderText: { flex: 1 },
   progressSubject: { fontSize: 11, color: '#E94560', fontWeight: '600', marginBottom: 2 },
   progressText:   { fontSize: 12, color: '#888', marginBottom: 6 },
   progressBar:    { height: 4, backgroundColor: '#EEE', borderRadius: 2 },
   progressFill:   { height: 4, backgroundColor: '#E94560', borderRadius: 2 },
+  quitBtn:        { paddingHorizontal: 10, paddingVertical: 4, marginLeft: 8 },
+  quitBtnText:    { fontSize: 12, color: '#9CA3AF', fontWeight: '600' },
 
   resultBanner:    { marginHorizontal: 16, marginTop: 8, marginBottom: 4, padding: 14, borderRadius: 8, alignItems: 'center' },
   correctBanner:   { backgroundColor: '#D4EDDA' },

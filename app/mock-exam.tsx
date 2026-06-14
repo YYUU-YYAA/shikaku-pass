@@ -3,27 +3,86 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useProgress } from '../hooks/useProgress';
 import { QuestionCard } from '../components/QuestionCard';
 import { QUESTIONS } from '../data/questions';
-import { SUBJECT_LABELS } from '../types';
-import type { Question, SubjectKey } from '../types';
+import { getSubjectsForExam } from '../data/examSubjects';
+import type { Question } from '../types';
 
-const EXAM_DURATION_SEC = 90 * 60; // 90分
-const QUESTIONS_PER_SUBJECT = 20;  // 各科目20問 = 計60問
+interface MockExamConfig {
+  examTitle: string;
+  examSubtitle: string;
+  durationSec: number;
+  questionsPerSubject: number;
+  /** 模試開始に必要な科目あたりの最低問題数（これ未満なら canStart=false） */
+  minQuestionsPerSubject: number;
+  subjectKeys: string[];
+  subjectLabels: Record<string, string>;
+  /** 科目ごとの60%足切り合否バッジを表示するか（乙4のみtrue） */
+  showSubjectPassFail: boolean;
+}
 
-const SUBJECTS: SubjectKey[] = ['financial_analysis', 'securities_analysis', 'market_economics'];
+const MOCK_EXAM_CONFIGS: Record<string, MockExamConfig> = {
+  cma: {
+    examTitle: '模擬試験',
+    examSubtitle: 'CMA 1次 総合模試',
+    durationSec: 90 * 60, // 90分
+    questionsPerSubject: 20, // 各科目20問 = 計60問
+    minQuestionsPerSubject: 20,
+    subjectKeys: getSubjectsForExam('cma').map(s => s.key),
+    subjectLabels: Object.fromEntries(getSubjectsForExam('cma').map(s => [s.key, s.label])),
+    showSubjectPassFail: false,
+  },
+  kikenbutsu4: {
+    examTitle: '模擬試験',
+    examSubtitle: '危険物乙4 ミニ模試',
+    durationSec: 60 * 60, // 60分
+    questionsPerSubject: 10, // 各科目最大10問・出題可能な範囲で抽出（計最大30問）
+    minQuestionsPerSubject: 1,
+    subjectKeys: getSubjectsForExam('kikenbutsu4').map(s => s.key),
+    subjectLabels: Object.fromEntries(getSubjectsForExam('kikenbutsu4').map(s => [s.key, s.label])),
+    showSubjectPassFail: true,
+  },
+  g_kentei: {
+    examTitle: '模擬試験',
+    examSubtitle: 'G検定 ミニ模試',
+    // G検定は「1問36秒」が特性。各科目5問×5科目=計25問を想定し、
+    // 36秒×25問=約15分の解答時間に解説確認等の余裕を持たせて30分とする。
+    durationSec: 30 * 60, // 30分
+    questionsPerSubject: 5, // 各科目最大5問・計最大25問
+    minQuestionsPerSubject: 1,
+    subjectKeys: getSubjectsForExam('g_kentei').map(s => s.key),
+    subjectLabels: Object.fromEntries(getSubjectsForExam('g_kentei').map(s => [s.key, s.label])),
+    showSubjectPassFail: false,
+  },
+  kikenbutsu_ko: {
+    examTitle: '模擬試験',
+    examSubtitle: '危険物甲種 ミニ模試',
+    durationSec: 60 * 60, // 60分
+    questionsPerSubject: 10, // 各科目最大10問・出題可能な範囲で抽出（計最大30問）
+    minQuestionsPerSubject: 1,
+    subjectKeys: getSubjectsForExam('kikenbutsu_ko').map(s => s.key),
+    subjectLabels: Object.fromEntries(getSubjectsForExam('kikenbutsu_ko').map(s => [s.key, s.label])),
+    // 甲種も乙4と同様、科目ごとに60%以上が合格基準（足切りあり）のため合否バッジを表示
+    showSubjectPassFail: true,
+  },
+};
+
+function getMockExamConfig(examId?: string): MockExamConfig {
+  if (examId && MOCK_EXAM_CONFIGS[examId]) return MOCK_EXAM_CONFIGS[examId];
+  return MOCK_EXAM_CONFIGS.cma;
+}
 
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-function buildExam(): Question[] {
+function buildExam(config: MockExamConfig): Question[] {
   const selected: Question[] = [];
-  for (const subject of SUBJECTS) {
+  for (const subject of config.subjectKeys) {
     const pool = QUESTIONS.filter(q => q.subject === subject);
-    const picked = shuffle(pool).slice(0, QUESTIONS_PER_SUBJECT);
+    const picked = shuffle(pool).slice(0, config.questionsPerSubject);
     selected.push(...picked);
   }
   return shuffle(selected);
@@ -45,7 +104,10 @@ interface SubjectResult {
 
 export default function MockExamScreen() {
   const router = useRouter();
+  const { examId: examIdParam } = useLocalSearchParams<{ examId?: string }>();
   const { recordAnswer } = useProgress();
+
+  const config = getMockExamConfig(examIdParam);
 
   const [phase, setPhase] = useState<ExamPhase>('intro');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -53,20 +115,20 @@ export default function MockExamScreen() {
   const [answers, setAnswers] = useState<Record<string, 'A' | 'B' | 'C' | 'D'>>({});
   const [answered, setAnswered] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState(EXAM_DURATION_SEC);
+  const [timeLeft, setTimeLeft] = useState(config.durationSec);
   const [subjectResults, setSubjectResults] = useState<SubjectResult[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const finishExam = useCallback((qs: Question[], ans: Record<string, 'A' | 'B' | 'C' | 'D'>) => {
     if (timerRef.current) clearInterval(timerRef.current);
-    const results = SUBJECTS.map(subject => ({
-      label: SUBJECT_LABELS[subject],
+    const results = config.subjectKeys.map(subject => ({
+      label: config.subjectLabels[subject] ?? subject,
       correct: qs.filter(q => q.subject === subject && ans[q.id] === q.correctAnswer).length,
       total: qs.filter(q => q.subject === subject).length,
     }));
     setSubjectResults(results);
     setPhase('result');
-  }, []);
+  }, [config]);
 
   useEffect(() => {
     if (phase !== 'exam') return;
@@ -87,13 +149,13 @@ export default function MockExamScreen() {
   }, [phase, questions, finishExam]);
 
   function startExam() {
-    const qs = buildExam();
+    const qs = buildExam(config);
     setQuestions(qs);
     setCurrentIndex(0);
     setAnswers({});
     setAnswered(false);
     setSelectedKey(null);
-    setTimeLeft(EXAM_DURATION_SEC);
+    setTimeLeft(config.durationSec);
     setPhase('exam');
   }
 
@@ -131,32 +193,40 @@ export default function MockExamScreen() {
 
   // ── イントロ画面 ──────────────────────────────────────
   if (phase === 'intro') {
-    const available = SUBJECTS.map(s => ({
-      label: SUBJECT_LABELS[s],
+    const available = config.subjectKeys.map(s => ({
+      key: s,
+      label: config.subjectLabels[s] ?? s,
       count: QUESTIONS.filter(q => q.subject === s).length,
     }));
-    const canStart = available.every(s => s.count >= QUESTIONS_PER_SUBJECT);
+    const canStart = available.every(s => s.count >= config.minQuestionsPerSubject);
+    const totalQuestions = available.reduce((sum, s) => sum + Math.min(s.count, config.questionsPerSubject), 0);
+    const durationLabel = `${Math.round(config.durationSec / 60)}分`;
 
     return (
       <ScrollView style={styles.bg} contentContainerStyle={styles.introContainer}>
-        <Text style={styles.introTitle}>模擬試験</Text>
-        <Text style={styles.introSub}>CMA 1次 総合模試</Text>
+        <Text style={styles.introTitle}>{config.examTitle}</Text>
+        <Text style={styles.introSub}>{config.examSubtitle}</Text>
 
         <View style={styles.infoCard}>
-          <Row label="問題数" value={`${QUESTIONS_PER_SUBJECT * 3}問（各科目${QUESTIONS_PER_SUBJECT}問）`} />
-          <Row label="制限時間" value="90分" />
+          <Row label="問題数" value={`最大${totalQuestions}問（各科目最大${config.questionsPerSubject}問）`} />
+          <Row label="制限時間" value={durationLabel} />
           <Row label="出題形式" value="4択 択一式" />
           <Row label="解答表示" value="1問ごとに確認可" />
+          {config.showSubjectPassFail && (
+            <Row label="合格基準" value="科目ごとに正答率60%以上（1科目でも未満なら不合格）" />
+          )}
         </View>
 
         <Text style={styles.subjectTitle}>出題科目</Text>
         {available.map(s => (
-          <View key={s.label} style={styles.subjectRow}>
+          <View key={s.key} style={styles.subjectRow}>
             <Text style={styles.subjectName}>{s.label}</Text>
-            <Text style={[styles.subjectStat, s.count < QUESTIONS_PER_SUBJECT && styles.insufficient]}>
-              {s.count < QUESTIONS_PER_SUBJECT
+            <Text style={[styles.subjectStat, s.count < config.minQuestionsPerSubject && styles.insufficient]}>
+              {s.count < config.minQuestionsPerSubject
                 ? `問題不足（${s.count}問）`
-                : `${s.count}問中${QUESTIONS_PER_SUBJECT}問出題`}
+                : s.count < config.questionsPerSubject
+                  ? `${s.count}問中${s.count}問出題（出題可能な範囲で抽出）`
+                  : `${s.count}問中${config.questionsPerSubject}問出題`}
             </Text>
           </View>
         ))}
@@ -196,7 +266,7 @@ export default function MockExamScreen() {
         <View style={styles.examHeader}>
           <View>
             <Text style={styles.examProgress}>{currentIndex + 1} / {total}</Text>
-            <Text style={styles.examSubject}>{SUBJECT_LABELS[current.subject as SubjectKey]}</Text>
+            <Text style={styles.examSubject}>{config.subjectLabels[current.subject] ?? current.subject}</Text>
           </View>
           <View style={styles.timerBox}>
             <Text style={[styles.timer, timeWarning && styles.timerWarning]}>
@@ -250,8 +320,13 @@ export default function MockExamScreen() {
   if (phase === 'result') {
     const totalCorrect = subjectResults.reduce((s, r) => s + r.correct, 0);
     const totalQ = subjectResults.reduce((s, r) => s + r.total, 0);
-    const totalRate = Math.round((totalCorrect / totalQ) * 100);
-    const passed = totalRate >= 60;
+    const totalRate = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
+    // 乙4は科目別60%足切りあり: 1科目でも60%未満（未受験科目=0%扱い）なら不合格。
+    // CMA等は総合スコアのみで判定（既存挙動を変更しない）。
+    const subjectAllPass = subjectResults.every(r => r.total > 0 && Math.round((r.correct / r.total) * 100) >= 60);
+    const passed = config.showSubjectPassFail
+      ? (totalRate >= 60 && subjectAllPass)
+      : totalRate >= 60;
 
     return (
       <ScrollView style={styles.bg} contentContainerStyle={styles.resultContainer}>
@@ -263,16 +338,29 @@ export default function MockExamScreen() {
           <Text style={[styles.passLabel, passed ? styles.pass : styles.fail]}>
             {passed ? '合格圏' : '要復習'}
           </Text>
+          {config.showSubjectPassFail && (
+            <Text style={styles.passFailNote}>
+              ※乙4は科目ごとに正答率60%以上が合格基準です（1科目でも未満なら不合格）
+            </Text>
+          )}
         </View>
 
         <Text style={styles.breakdownTitle}>科目別スコア</Text>
         {subjectResults.map(r => {
-          const rate = Math.round((r.correct / r.total) * 100);
+          const rate = r.total > 0 ? Math.round((r.correct / r.total) * 100) : 0;
+          const subjectPassed = r.total > 0 && rate >= 60;
           return (
             <View key={r.label} style={styles.subjectResultRow}>
               <View style={styles.subjectResultLeft}>
                 <Text style={styles.subjectResultLabel}>{r.label}</Text>
                 <Text style={styles.subjectResultScore}>{r.correct} / {r.total}問正解</Text>
+                {config.showSubjectPassFail && (
+                  <View style={[styles.subjectPassBadge, subjectPassed ? styles.subjectPassBadgeOk : styles.subjectPassBadgeNg]}>
+                    <Text style={[styles.subjectPassBadgeText, subjectPassed ? styles.subjectPassBadgeTextOk : styles.subjectPassBadgeTextNg]}>
+                      {r.total === 0 ? '出題なし' : subjectPassed ? '合格' : '不合格'}
+                    </Text>
+                  </View>
+                )}
               </View>
               <View style={styles.subjectRateBox}>
                 <Text style={[styles.subjectRate, rate >= 60 ? styles.rateGood : styles.rateBad]}>
@@ -392,6 +480,7 @@ const styles = StyleSheet.create({
   passLabel: { fontSize: 16, fontWeight: '700', marginTop: 12, paddingHorizontal: 20, paddingVertical: 6, borderRadius: 20 },
   pass: { backgroundColor: 'rgba(40,167,69,0.2)', color: '#28A745' },
   fail: { backgroundColor: 'rgba(233,69,96,0.15)', color: '#E94560' },
+  passFailNote: { fontSize: 11, color: '#AAA', marginTop: 12, textAlign: 'center', lineHeight: 16 },
 
   breakdownTitle: { fontSize: 12, color: '#888', alignSelf: 'flex-start', marginBottom: 12, letterSpacing: 1 },
   subjectResultRow: {
@@ -408,4 +497,14 @@ const styles = StyleSheet.create({
   rateBad: { color: '#E94560' },
   miniBar: { height: 4, width: 60, backgroundColor: '#2A2A4A', borderRadius: 2, marginTop: 4 },
   miniBarFill: { height: 4, borderRadius: 2 },
+
+  // 科目別合否バッジ（乙4のみ表示）
+  subjectPassBadge: {
+    alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
+  },
+  subjectPassBadgeOk: { backgroundColor: 'rgba(40,167,69,0.2)' },
+  subjectPassBadgeNg: { backgroundColor: 'rgba(233,69,96,0.2)' },
+  subjectPassBadgeText: { fontSize: 11, fontWeight: '700' },
+  subjectPassBadgeTextOk: { color: '#28A745' },
+  subjectPassBadgeTextNg: { color: '#E94560' },
 });

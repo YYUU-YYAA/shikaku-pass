@@ -2,18 +2,12 @@ import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet,
 } from 'react-native';
+import TopTabBar from '../components/TopTabBar';
 import { GLOSSARY } from '../data/glossary';
 import { SUBJECT_LABELS } from '../types';
 import type { SubjectKey } from '../types';
-
-type FilterKey = 'all' | SubjectKey;
-
-const FILTERS: Array<{ key: FilterKey; label: string }> = [
-  { key: 'all',                  label: '全科目' },
-  { key: 'financial_analysis',   label: '財務' },
-  { key: 'securities_analysis',  label: '証券' },
-  { key: 'market_economics',     label: '経済' },
-];
+import { getExamIdForSubject, getSubjectsForExam, getSubjectMeta } from '../data/examSubjects';
+import { EXAMS } from '../data/roles';
 
 const SUBJECT_COLORS: Record<SubjectKey, string> = {
   financial_analysis:  '#E94560',
@@ -21,15 +15,37 @@ const SUBJECT_COLORS: Record<SubjectKey, string> = {
   market_economics:    '#2E7D32',
 };
 
+// Round16-B: GlossaryTerm.subjectがCMAのSubjectKey以外（G検定・危険物等の科目キー）も
+// 受け入れるようになったため、SUBJECT_COLORS/SUBJECT_LABELS（CMA専用・Record<SubjectKey,...>）
+// に存在しないキーはdata/examSubjects.tsのgetSubjectMeta()からテーマ色・科目ラベルを取得する。
+function getTermColor(subjectKey: string): string {
+  if (subjectKey in SUBJECT_COLORS) return SUBJECT_COLORS[subjectKey as SubjectKey];
+  return getSubjectMeta(subjectKey)?.theme.accent ?? '#666666';
+}
+
+function getTermSubjectLabel(subjectKey: string): string {
+  if (subjectKey in SUBJECT_LABELS) return SUBJECT_LABELS[subjectKey as SubjectKey];
+  return getSubjectMeta(subjectKey)?.label ?? subjectKey;
+}
+
+// Round15論点K: 資格(examId)フィルタ。GLOSSARYに実際にエントリが存在する資格のみ、
+// EXAMS配列順に動的生成する（YAGNI: 存在しない資格のフィルタは表示しない）。
+const EXAM_FILTERS: Array<{ key: string; label: string }> = [
+  { key: 'all', label: '全資格' },
+  ...EXAMS
+    .filter(exam => GLOSSARY.some(t => (getExamIdForSubject(t.subject) ?? 'cma') === exam.id))
+    .map(exam => ({ key: exam.id, label: exam.shortName })),
+];
+
 export default function GlossaryScreen() {
   const [query, setQuery]         = useState('');
-  const [filter, setFilter]       = useState<FilterKey>('all');
+  const [filter, setFilter]       = useState<string>('all');
   const [expanded, setExpanded]   = useState<Record<string, boolean>>({});
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return GLOSSARY.filter(t => {
-      if (filter !== 'all' && t.subject !== filter) return false;
+      if (filter !== 'all' && (getExamIdForSubject(t.subject) ?? 'cma') !== filter) return false;
       if (!q) return true;
       return (
         t.term.toLowerCase().includes(q) ||
@@ -40,12 +56,22 @@ export default function GlossaryScreen() {
     });
   }, [query, filter]);
 
+  // Round15論点K: 資格(examId)ごとにグループ化。
+  // 表示順はdata/roles.tsのEXAMS配列順、該当用語が1件以上ある資格のみ表示。
+  const groups = EXAMS
+    .map(exam => ({
+      exam,
+      terms: filtered.filter(t => (getExamIdForSubject(t.subject) ?? 'cma') === exam.id),
+    }))
+    .filter(g => g.terms.length > 0);
+
   function toggleExpand(id: string) {
     setExpanded(e => ({ ...e, [id]: !e[id] }));
   }
 
   return (
     <View style={styles.container}>
+      <TopTabBar />
       {/* Search bar */}
       <View style={styles.searchBox}>
         <Text style={styles.searchIcon}>🔍</Text>
@@ -59,9 +85,9 @@ export default function GlossaryScreen() {
         />
       </View>
 
-      {/* Subject filter */}
+      {/* Exam filter（Round15論点K: 資格別フィルタ） */}
       <View style={styles.filterRow}>
-        {FILTERS.map(f => (
+        {EXAM_FILTERS.map(f => (
           <TouchableOpacity
             key={f.key}
             style={[styles.filterBtn, filter === f.key && styles.filterBtnActive]}
@@ -83,35 +109,48 @@ export default function GlossaryScreen() {
             <Text style={styles.emptyText}>「{query}」に一致する用語が見つかりません</Text>
           </View>
         ) : (
-          filtered.map(term => {
-            const isOpen  = expanded[term.id] ?? false;
-            const color   = SUBJECT_COLORS[term.subject];
+          groups.map(({ exam, terms }) => {
+            const groupIcon = getSubjectsForExam(exam.id)[0]?.icon ?? '📘';
             return (
-              <TouchableOpacity
-                key={term.id}
-                style={styles.termCard}
-                onPress={() => toggleExpand(term.id)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.termHeader}>
-                  <View style={styles.termHeaderLeft}>
-                    <View style={[styles.subjectPill, { backgroundColor: color + '18', borderColor: color + '40' }]}>
-                      <Text style={[styles.subjectPillText, { color }]}>
-                        {SUBJECT_LABELS[term.subject].split('・')[0]}
-                      </Text>
-                    </View>
-                    <Text style={styles.categoryText}>{term.category}</Text>
-                  </View>
-                  <Text style={styles.chevron}>{isOpen ? '▲' : '▼'}</Text>
+              <View key={exam.id} style={styles.groupSection}>
+                <View style={styles.groupHeader}>
+                  <Text style={styles.groupHeaderText}>
+                    {groupIcon} {exam.shortName}（{terms.length}件）
+                  </Text>
                 </View>
 
-                <Text style={styles.termText}>{term.term}</Text>
-                <Text style={styles.readingText}>{term.reading}</Text>
+                {terms.map(term => {
+                  const isOpen = expanded[term.id] ?? false;
+                  const color  = getTermColor(term.subject);
+                  return (
+                    <TouchableOpacity
+                      key={term.id}
+                      style={styles.termCard}
+                      onPress={() => toggleExpand(term.id)}
+                      activeOpacity={0.85}
+                    >
+                      <View style={styles.termHeader}>
+                        <View style={styles.termHeaderLeft}>
+                          <View style={[styles.subjectPill, { backgroundColor: color + '18', borderColor: color + '40' }]}>
+                            <Text style={[styles.subjectPillText, { color }]}>
+                              {getTermSubjectLabel(term.subject).split('・')[0]}
+                            </Text>
+                          </View>
+                          <Text style={styles.categoryText}>{term.category}</Text>
+                        </View>
+                        <Text style={styles.chevron}>{isOpen ? '▲' : '▼'}</Text>
+                      </View>
 
-                {isOpen && (
-                  <Text style={styles.definitionText}>{term.definition}</Text>
-                )}
-              </TouchableOpacity>
+                      <Text style={styles.termText}>{term.term}</Text>
+                      <Text style={styles.readingText}>{term.reading}</Text>
+
+                      {isOpen && (
+                        <Text style={styles.definitionText}>{term.definition}</Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             );
           })
         )}
@@ -149,6 +188,10 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingTop: 60 },
   emptyIcon:  { fontSize: 40, marginBottom: 12 },
   emptyText:  { fontSize: 14, color: '#888', textAlign: 'center' },
+
+  groupSection: { marginBottom: 16 },
+  groupHeader: { marginBottom: 8 },
+  groupHeaderText: { fontSize: 14, fontWeight: '700', color: '#1A1A2E' },
 
   termCard: {
     backgroundColor: '#FFF', borderRadius: 10, padding: 14, marginBottom: 8,

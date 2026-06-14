@@ -3,10 +3,11 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   StatusBar, SafeAreaView,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { useProgress } from '../../hooks/useProgress';
-import { SUBJECT_LABELS, SUBJECT_ICONS, SUBJECT_THEMES } from '../../types';
-import type { SubjectKey } from '../../types';
+import { getSubjectMeta } from '../../data/examSubjects';
+import HeaderBackButton from '../../components/HeaderBackButton';
 
 function getMastery(attempted: number, rate: number) {
   if (attempted === 0) return { label: '未着手', color: '#9CA3AF', bg: '#F3F4F6' };
@@ -16,18 +17,22 @@ function getMastery(attempted: number, rate: number) {
 }
 
 export default function SubjectDetailScreen() {
-  const { key }    = useLocalSearchParams<{ key: string }>();
-  const subjectKey = key as SubjectKey;
-  const { stats }  = useProgress();
+  const { key, examId } = useLocalSearchParams<{ key: string; examId?: string }>();
+  const subjectKey = key as string;
+  const { stats, reload } = useProgress();
   const router     = useRouter();
 
-  if (!SUBJECT_THEMES[subjectKey]) return null;
+  useFocusEffect(useCallback(() => { reload(); }, [reload]));
 
-  const theme  = SUBJECT_THEMES[subjectKey];
-  const icon   = SUBJECT_ICONS[subjectKey];
-  const label  = SUBJECT_LABELS[subjectKey];
+  const meta = getSubjectMeta(subjectKey);
+  if (!meta) return null;
+
+  const theme  = meta.theme;
+  const icon   = meta.icon;
+  const label  = meta.label;
   const catMap = stats.bySubjectCategory[subjectKey] ?? {};
   const cats   = Object.entries(catMap);
+  const examParam = examId ?? 'cma';
 
   const subTotal     = cats.reduce((s, [, c]) => s + c.total, 0);
   const subAttempted = cats.reduce((s, [, c]) => s + c.attempted, 0);
@@ -43,9 +48,7 @@ export default function SubjectDetailScreen() {
       {/* Colored header */}
       <View style={[styles.header, { backgroundColor: theme.accent }]}>
         <SafeAreaView>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backText}>← ホームへ</Text>
-          </TouchableOpacity>
+          <HeaderBackButton label="ホームへ" onPress={() => router.back()} />
 
           <View style={styles.headerBody}>
             <Text style={styles.headerIcon}>{icon}</Text>
@@ -74,7 +77,7 @@ export default function SubjectDetailScreen() {
         {/* Quiz all */}
         <TouchableOpacity
           style={[styles.quizAllBtn, { backgroundColor: theme.accent }]}
-          onPress={() => router.push({ pathname: '/quiz', params: { subject: subjectKey } })}
+          onPress={() => router.push({ pathname: '/quiz', params: { subject: subjectKey, examId: examParam } })}
         >
           <Text style={styles.quizAllText}>全カテゴリ ランダム10問演習</Text>
           <Text style={styles.quizAllSub}>苦手もまとめて対策できます</Text>
@@ -91,7 +94,7 @@ export default function SubjectDetailScreen() {
             <TouchableOpacity
               key={cat}
               style={styles.catCard}
-              onPress={() => router.push({ pathname: '/quiz', params: { subject: subjectKey, category: cat } })}
+              onPress={() => router.push({ pathname: '/quiz', params: { subject: subjectKey, category: cat, examId: examParam } })}
               activeOpacity={0.85}
             >
               <View style={styles.catTop}>
@@ -129,8 +132,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F2F5FA' },
 
   header:     { backgroundColor: '#E94560', paddingBottom: 20, paddingHorizontal: 20 },
-  backBtn:    { paddingTop: 12, paddingBottom: 8 },
-  backText:   { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '600' },
   headerBody: { paddingBottom: 12 },
   headerIcon:    { fontSize: 32, marginBottom: 6 },
   headerTitle:   { fontSize: 22, fontWeight: '900', color: '#FFF', marginBottom: 4 },

@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { QUESTIONS } from '../data/questions';
-import type { Question, SubjectKey } from '../types';
+import type { Question } from '../types';
 
 interface UseQuestionsOptions {
-  subject?: SubjectKey | 'all';
+  subject?: string | 'all';
   category?: string;
   difficulty?: 1 | 2 | 3;
 }

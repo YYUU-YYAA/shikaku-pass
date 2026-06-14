@@ -25,7 +25,13 @@ export const SUBJECT_THEMES: Record<SubjectKey, { accent: string; bg: string; da
 
 export interface Question {
   id: string;
-  subject: SubjectKey;
+  /**
+   * 科目キー。CMAは SubjectKey の3キー固定union（互換性のため）、
+   * 他資格は資格名を含む一意な文字列（例: 'kikenbutsu4_law'）。
+   * bySubjectCategory はこのキーをそのままトップレベルキーとして使うため、
+   * 資格をまたいでもキーが衝突しない設計になっている。
+   */
+  subject: string;
   category: string;
   content: string;
   options: AnswerOption[];
@@ -61,7 +67,11 @@ export interface ProgressStats {
   totalCorrect: number;
   accuracyRate: number;
   byCategory: Record<string, { answered: number; correct: number }>;
-  bySubjectCategory: Record<SubjectKey, Record<string, CategoryStat>>;
+  /**
+   * 科目キー(string) → カテゴリ名 → 統計。
+   * 資格非依存。CMAの3キーも他資格のキーもこのRecordにフラットに乗る。
+   */
+  bySubjectCategory: Record<string, Record<string, CategoryStat>>;
   weakQuestionIds: string[];
   correctQuestionIds: string[];
   streak: number;
@@ -73,7 +83,12 @@ export interface GlossaryTerm {
   id: string;
   term: string;
   reading: string;
-  subject: SubjectKey;
+  /**
+   * Round16-B: CMAの3科目キー(SubjectKey)に加え、G検定・危険物等の
+   * 資格別科目キー(data/examSubjects.tsのExamSubjectMeta.key)も許容する。
+   * getExamIdForSubject(subjectKey: string)による資格別グルーピングのため string を許容する。
+   */
+  subject: SubjectKey | string;
   category: string;
   definition: string;
 }

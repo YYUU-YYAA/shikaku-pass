@@ -7,10 +7,8 @@ import { useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { getExamDefinition, getRolesByExam } from '../../data/roles';
 import type { ExamId, RoleDefinition, RoadmapPhase, RoadmapStep } from '../../data/roles';
 import { RoleCard } from '../../components/RoleCard';
-import { SUBJECT_LABELS, SUBJECT_ICONS, SUBJECT_THEMES } from '../../types';
-import type { SubjectKey } from '../../types';
-
-const SUBJECTS: SubjectKey[] = ['financial_analysis', 'securities_analysis', 'market_economics'];
+import { getSubjectsForExam } from '../../data/examSubjects';
+import HeaderBackButton from '../../components/HeaderBackButton';
 
 /** examId が登場する phase/step を role ごとに探索する（ロードマップ上の位置セクション用） */
 function findPosition(role: RoleDefinition, examId: ExamId): { phase: RoadmapPhase; step: RoadmapStep } | null {
@@ -48,6 +46,7 @@ export default function QualificationDetailScreen() {
     .filter((p): p is { role: RoleDefinition; position: { phase: RoadmapPhase; step: RoadmapStep } } => p.position !== null);
 
   const hasOverview = !!(exam.studyHours || exam.difficulty || exam.prerequisite || exam.evaluation);
+  const subjects = getSubjectsForExam(exam.id);
 
   return (
     <View style={styles.screen}>
@@ -56,9 +55,7 @@ export default function QualificationDetailScreen() {
       {/* ── Dark header ─────────────────────────────── */}
       <View style={styles.header}>
         <SafeAreaView>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.push('/')}>
-            <Text style={styles.backText}>← ホームへ</Text>
-          </TouchableOpacity>
+          <HeaderBackButton label="ホームへ" onPress={() => router.push('/')} />
 
           <View style={styles.headerBody}>
             <Text style={styles.headerIcon}>📘</Text>
@@ -80,32 +77,32 @@ export default function QualificationDetailScreen() {
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         <View style={styles.noteBox}>
           <Text style={styles.noteText}>
-            ※これは資格Passの編集チームが考える、おすすめの順番です
+            ※これは資格パスの編集チームが考える、おすすめの順番です
           </Text>
         </View>
 
         {exam.implemented ? (
           <>
-            {/* A. implemented:true (CMAのみ) — 既存演習機能への導線 */}
-            <Text style={styles.sectionLabel}>CMA Passで演習を始める</Text>
+            {/* A. implemented:true — 演習機能への導線（資格ごとにEXAM_SUBJECTSから動的生成） */}
+            <Text style={styles.sectionLabel}>{exam.shortName}で演習を始める</Text>
             <Text style={styles.sectionCaption}>
-              CMAは資格Passの母艦資格です。3科目の演習・模擬試験・進捗管理がすべて利用できます。
+              {exam.name}は{subjects.length}科目構成です。科目別の演習・模擬試験・進捗管理がすべて利用できます。
             </Text>
 
-            {SUBJECTS.map((key) => {
-              const theme = SUBJECT_THEMES[key];
+            {subjects.map((subj) => {
+              const theme = subj.theme;
               return (
                 <TouchableOpacity
-                  key={key}
+                  key={subj.key}
                   style={styles.subjectCard}
-                  onPress={() => router.push(`/subject/${key}`)}
+                  onPress={() => router.push({ pathname: '/subject/[key]', params: { key: subj.key, examId: exam.id } })}
                   activeOpacity={0.85}
                 >
                   <View style={[styles.subjectAccent, { backgroundColor: theme.accent }]} />
                   <View style={styles.subjectBody}>
                     <View style={styles.subjectTitleRow}>
-                      <Text style={styles.subjectIcon}>{SUBJECT_ICONS[key]}</Text>
-                      <Text style={styles.subjectName}>{SUBJECT_LABELS[key]}で演習を始める</Text>
+                      <Text style={styles.subjectIcon}>{subj.icon}</Text>
+                      <Text style={styles.subjectName}>{subj.label}</Text>
                     </View>
                     <Text style={[styles.subjectArrow, { color: theme.accent }]}>→</Text>
                   </View>
@@ -115,7 +112,7 @@ export default function QualificationDetailScreen() {
 
             <TouchableOpacity
               style={styles.examBtn}
-              onPress={() => router.push('/mock-exam')}
+              onPress={() => router.push({ pathname: '/mock-exam', params: { examId: exam.id } })}
             >
               <Text style={styles.examBtnText}>模擬試験モードを試す</Text>
               <Text style={styles.examBtnArrow}>→</Text>
@@ -159,7 +156,7 @@ export default function QualificationDetailScreen() {
             <View style={styles.pendingBox}>
               <Text style={styles.pendingTitle}>「準備中」について</Text>
               <Text style={styles.pendingText}>
-                資格Passではこの資格の演習機能を準備中です。公開されたら、このページから直接演習に進めるようになります。
+                資格パスではこの資格の演習機能を準備中です。公開されたら、このページから直接演習に進めるようになります。
               </Text>
             </View>
           </>
@@ -208,8 +205,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0B1437', paddingHorizontal: 20, paddingBottom: 24,
     paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0,
   },
-  backBtn:  { paddingTop: 12, paddingBottom: 8 },
-  backText: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '600' },
 
   headerBody:  { paddingTop: 8 },
   headerIcon:  { fontSize: 36, marginBottom: 8 },

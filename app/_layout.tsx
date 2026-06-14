@@ -1,29 +1,27 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import HeaderTitle from '../components/HeaderTitle';
 
 export default function Layout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#E94560',
+        // Round9: ボトムタブバーは非表示にし、共有コンポーネントTopTabBarを
+        // 各画面の先頭に配置してトップタブ化する。
+        tabBarActiveTintColor: '#FF2D87', // COLOR_ACCENT_PINK（象モチーフのピンク）に統一
         tabBarInactiveTintColor: '#9CA3AF',
-        tabBarStyle: {
-          backgroundColor: '#FFF',
-          borderTopColor: '#F0F0F0',
-          height: 60,
-          paddingBottom: 8,
-        },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+        tabBarStyle: { display: 'none' },
         headerStyle: { backgroundColor: '#0B1437' },
         headerTintColor: '#FFF',
         headerTitleStyle: { fontWeight: '800' },
+        // Round10: 全画面共通ヘッダーに🐘バッジ＋タイトルを表示する
+        headerTitle: ({ children }) => <HeaderTitle>{children}</HeaderTitle>,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'ホーム',
-          headerShown: false,
+          title: 'キャリア別資格パス',
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
@@ -80,6 +78,13 @@ export default function Layout() {
       />
       <Tabs.Screen
         name="qualifications/[examId]"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="progress/[examId]"
         options={{
           href: null,
           headerShown: false,

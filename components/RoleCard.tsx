@@ -5,7 +5,7 @@ import type { RoleDefinition } from '../data/roles';
 
 interface Props {
   role: RoleDefinition;
-  /** CMA Passの母艦職種（金融・investment）に付ける小さなバッジ */
+  /** 資格Passの母艦職種（金融・investment）に付ける小さなバッジ */
   highlight?: boolean;
 }
 
@@ -26,7 +26,7 @@ export function RoleCard({ role, highlight = false }: Props) {
     >
       {highlight && (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>CMA Passはこの職種の資格です</Text>
+          <Text style={styles.badgeText}>金融の母艦資格</Text>
         </View>
       )}
       <View style={styles.top}>
