@@ -6,6 +6,15 @@ import { QUESTIONS } from '../data/questions';
 const mockQuestion = QUESTIONS[0];
 
 describe('QuestionCard', () => {
+  // shuffle()はMath.random()ベースのため、テストでは0.5固定でsortを無効化し
+  // 表示順を元のA/B/C/D順に保つ（表示ラベルは位置ベースのためopt.keyと一致する）
+  beforeEach(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.5);
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders question text', () => {
     const { getByText } = render(
       <QuestionCard question={mockQuestion} onAnswer={jest.fn()} />

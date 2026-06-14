@@ -117,6 +117,7 @@ export default function MockExamScreen() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(config.durationSec);
   const [subjectResults, setSubjectResults] = useState<SubjectResult[]>([]);
+  const [correctLabel, setCorrectLabel] = useState<'A' | 'B' | 'C' | 'D'>('A');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const finishExam = useCallback((qs: Question[], ans: Record<string, 'A' | 'B' | 'C' | 'D'>) => {
@@ -288,6 +289,7 @@ export default function MockExamScreen() {
           key={current.id}
           question={current}
           onAnswer={handleAnswer}
+          onCorrectLabelChange={setCorrectLabel}
           disabled={answered}
         />
 
@@ -296,7 +298,7 @@ export default function MockExamScreen() {
           <>
             <View style={[styles.resultBanner, isCorrect ? styles.correct : styles.wrong]}>
               <Text style={styles.resultBannerText}>
-                {isCorrect ? '正解！' : `不正解　正解：${current.correctAnswer}`}
+                {isCorrect ? '正解！' : `不正解　正解：${correctLabel}`}
               </Text>
             </View>
 

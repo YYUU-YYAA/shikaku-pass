@@ -116,6 +116,7 @@ export default function QuizScreen() {
   const [correctCount, setCorrectCount]       = useState(0);
   const [consecutiveWrong, setConsecutiveWrong] = useState(0);
   const [finished, setFinished]               = useState(false);
+  const [correctLabel, setCorrectLabel]       = useState<'A' | 'B' | 'C' | 'D'>('A');
   const startTime = useRef(Date.now());
 
   const subjectTitle = subjectFilter ? (getSubjectMeta(subjectFilter)?.label ?? subjectFilter) : '全科目';
@@ -340,6 +341,7 @@ export default function QuizScreen() {
         key={current.id}
         question={current}
         onAnswer={handleAnswer}
+        onCorrectLabelChange={setCorrectLabel}
         disabled={answered}
       />
 
@@ -348,7 +350,7 @@ export default function QuizScreen() {
           {/* 正解/不正解バナー */}
           <View style={[styles.resultBanner, isCorrect ? styles.correctBanner : styles.wrongBanner]}>
             <Text style={styles.resultBannerText}>
-              {isCorrect ? '正解！' : `不正解　正解：${current.correctAnswer}`}
+              {isCorrect ? '正解！' : `不正解　正解：${correctLabel}`}
             </Text>
           </View>
 
