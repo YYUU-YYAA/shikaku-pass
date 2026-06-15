@@ -77,6 +77,8 @@ export interface ProgressStats {
   streak: number;
   lastStudyDate: string;
   savedQuestions: SavedQuestion[];
+  /** 問題ID → 最新の解答日時（ISO文字列）。未解答の問題はキーが存在しない。 */
+  lastAnsweredAtByQuestionId: Record<string, string>;
 }
 
 export interface GlossaryTerm {

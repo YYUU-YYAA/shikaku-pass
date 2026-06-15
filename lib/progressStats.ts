@@ -42,6 +42,7 @@ export const EMPTY_PROGRESS_STATS: ProgressStats = {
   streak: 0,
   lastStudyDate: '',
   savedQuestions: [],
+  lastAnsweredAtByQuestionId: {},
 };
 
 /**
@@ -100,6 +101,12 @@ export function computeProgressStats(
 
   const { streak, lastStudyDate } = computeStreak(answers);
 
+  // 問題ID → 最新の解答日時（「一通り出題し終えてから2周目へ」のための並び替えに使用）
+  const lastAnsweredAtByQuestionId: Record<string, string> = {};
+  latestByQuestion.forEach((latest, qId) => {
+    lastAnsweredAtByQuestionId[qId] = latest.answeredAt;
+  });
+
   return {
     totalAnswered: answers.length,
     totalCorrect: answers.filter(a => a.isCorrect).length,
@@ -112,5 +119,6 @@ export function computeProgressStats(
     streak,
     lastStudyDate,
     savedQuestions,
+    lastAnsweredAtByQuestionId,
   };
 }

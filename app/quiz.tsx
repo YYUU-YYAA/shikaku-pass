@@ -42,13 +42,15 @@ export default function QuizScreen() {
   const subjectFilter  = (subject && subject !== 'all') ? subject : undefined;
   const categoryFilter = (category && category !== '') ? category : undefined;
 
-  const { getRandomQuestions } = useQuestions({ subject: subjectFilter ?? 'all', category: categoryFilter });
+  const { getLeastRecentQuestions } = useQuestions({ subject: subjectFilter ?? 'all', category: categoryFilter });
   const { stats, recordAnswer, loaded }  = useProgress();
   const { saved, saveQuestion, removeQuestion, isSaved } = useSavedQuestions();
 
   // ── Question list initialization ─────────────────────���──────────────────────
+  // 「一通り出題してから2周目・3周目に進む」ため、最後に解答した日時が古い
+  // （未解答含む）問題を優先して出題する。
   function buildNormalQuestions() {
-    return shuffle(getRandomQuestions(QUIZ_SIZE));
+    return getLeastRecentQuestions(QUIZ_SIZE, stats.lastAnsweredAtByQuestionId);
   }
 
   function buildSingleQuestion() {
@@ -66,11 +68,9 @@ export default function QuizScreen() {
   }
 
   const [questions, setQuestions] = useState<Question[] | null>(
-    isReviewMode || isSavedMode || isStatusMode ? null
-      : isSingleMode ? buildSingleQuestion()
-      : buildNormalQuestions(),
+    isSingleMode ? buildSingleQuestion() : null,
   );
-  const [initialized, setInitialized] = useState(!(isReviewMode || isSavedMode || isStatusMode));
+  const [initialized, setInitialized] = useState(isSingleMode);
 
   useEffect(() => {
     if (initialized) return;
@@ -104,9 +104,16 @@ export default function QuizScreen() {
       }
       setQuestions(shuffle(qs).slice(0, SAVED_MAX));
       setInitialized(true);
+      return;
     }
+
+    // 通常モード: DBから読込んだ解答履歴を使って出題順を決めるため、loaded待ち
+    if (!loaded) return;
+    setQuestions(buildNormalQuestions());
+    setInitialized(true);
   }, [isReviewMode, isSavedMode, isStatusMode, isMemoMode, initialized, examIdFilter,
-      stats.weakQuestionIds, stats.correctQuestionIds, stats.totalAnswered, loaded, saved]);
+      stats.weakQuestionIds, stats.correctQuestionIds, stats.totalAnswered,
+      stats.lastAnsweredAtByQuestionId, loaded, saved]);
 
   // ── Quiz state ──────────────────────────────────────────────────────────────
   const [currentIndex, setCurrentIndex]       = useState(0);
@@ -247,7 +254,7 @@ export default function QuizScreen() {
       }
       setQuestions(shuffle(qs).slice(0, SAVED_MAX));
     } else {
-      setQuestions(shuffle(getRandomQuestions(QUIZ_SIZE)));
+      setQuestions(buildNormalQuestions());
     }
   }
 

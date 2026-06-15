@@ -61,3 +61,25 @@ describe('computeProgressStats — 進捗(attempted)と正答率(correct/attempt
     expect(stat).toEqual({ total: 21, attempted: 2, correct: 1 });
   });
 });
+
+describe('computeProgressStats — lastAnsweredAtByQuestionId（出題の周回管理用）', () => {
+  it('問題ごとに最新の解答日時を記録する', () => {
+    const answers: UserAnswer[] = [
+      answer('gkentei-le-001', false, '2026-06-13T10:00:00.000Z'),
+      answer('gkentei-le-001', true,  '2026-06-13T10:05:00.000Z'),
+      answer('gkentei-le-002', false, '2026-06-13T10:01:00.000Z'),
+    ];
+
+    const result = computeProgressStats(answers, []);
+
+    expect(result.lastAnsweredAtByQuestionId).toEqual({
+      'gkentei-le-001': '2026-06-13T10:05:00.000Z',
+      'gkentei-le-002': '2026-06-13T10:01:00.000Z',
+    });
+  });
+
+  it('未解答の問題はキーが存在しない', () => {
+    const result = computeProgressStats([], []);
+    expect(result.lastAnsweredAtByQuestionId).toEqual({});
+  });
+});

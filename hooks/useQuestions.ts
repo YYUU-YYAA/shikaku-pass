@@ -28,5 +28,20 @@ export function useQuestions(options: UseQuestionsOptions = {}) {
     return shuffled.slice(0, Math.min(count, shuffled.length));
   }
 
-  return { questions, getRandomQuestions };
+  /**
+   * 「一通り出題してから2周目・3周目に進む」ための出題順。
+   * 最後に解答した日時が古い（＝未解答を含む）問題ほど先に出題されるよう並べ、
+   * 同じ優先度の問題同士はランダムな順序にする。
+   */
+  function getLeastRecentQuestions(count: number, lastAnsweredAt: Record<string, string>): Question[] {
+    const shuffled = [...questions].sort(() => Math.random() - 0.5);
+    const sorted = shuffled.sort((a, b) => {
+      const aTime = lastAnsweredAt[a.id] ?? '';
+      const bTime = lastAnsweredAt[b.id] ?? '';
+      return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
+    });
+    return sorted.slice(0, Math.min(count, sorted.length));
+  }
+
+  return { questions, getRandomQuestions, getLeastRecentQuestions };
 }
