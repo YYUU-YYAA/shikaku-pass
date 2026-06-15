@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+
+// 隠し導線: 「用語集」タブを2秒以内に5回連続タップすると非公開のVCノート
+// 画面(/vc-notes)へ遷移する。onLongPress/delayLongPressはモバイルブラウザの
+// コンテキストメニュー/テキスト選択ジェスチャーと競合して発火しないことが
+// あるため、ブラウザ依存しないonPress+タイムスタンプ判定方式にしている。
+const HIDDEN_TAP_COUNT = 5;
+const HIDDEN_TAP_WINDOW_MS = 2000;
 
 // ── デザイントークン（app/index.tsxと共通。象モチーフのピンク） ──
 const COLOR_ACCENT_PINK = '#FF2D87';
@@ -25,23 +32,30 @@ const TABS: Array<{ key: TabKey; href: '/' | '/progress' | '/saved' | '/glossary
 export default function TopTabBar() {
   const router = useRouter();
   const pathname = usePathname();
+  const tapTimestamps = useRef<number[]>([]);
+
+  function handleGlossaryPress() {
+    const now = Date.now();
+    const recent = tapTimestamps.current.filter(t => now - t < HIDDEN_TAP_WINDOW_MS);
+    recent.push(now);
+    if (recent.length >= HIDDEN_TAP_COUNT) {
+      tapTimestamps.current = [];
+      router.push('/vc-notes');
+      return;
+    }
+    tapTimestamps.current = recent;
+    router.push('/glossary');
+  }
 
   return (
     <View style={styles.bar}>
       {TABS.map((tab) => {
         const active = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href);
-        // 隠し導線: 用語集タブを1.5秒以上長押しすると、非公開のVCノート画面
-        // (/vc-notes) へ遷移する。通常のタップ(onPress)は従来通り
-        // /glossaryへの遷移として動作するため、普通の操作では発火しない。
-        // 出典: docs/meetings/2026-06-15-2051-hidden-vc-question-bank.md
-        const isHiddenTrigger = tab.key === 'glossary';
         return (
           <TouchableOpacity
             key={tab.key}
             style={styles.tab}
-            onPress={() => router.push(tab.href)}
-            onLongPress={isHiddenTrigger ? () => router.push('/vc-notes') : undefined}
-            delayLongPress={isHiddenTrigger ? 1500 : undefined}
+            onPress={() => (tab.key === 'glossary' ? handleGlossaryPress() : router.push(tab.href))}
             activeOpacity={0.7}
           >
             <View style={[styles.iconWrap, active && styles.iconWrapActive]}>

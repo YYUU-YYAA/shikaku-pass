@@ -19,8 +19,8 @@ import HeaderBackButton from '../components/HeaderBackButton';
  *     科目ごとに1カテゴリずつ表示するシンプルな一覧画面。
  *   - 各科目カードをタップすると /quiz?subject=<key>&category=<category> へ遷移。
  *   - この画面は app/_layout.tsx で href: null を指定し、タブバーには
- *     一切表示しない。到達経路は components/TopTabBar.tsx の長押し
- *     （onLongPress, 1.5秒以上）のみ。
+ *     一切表示しない。到達経路は components/TopTabBar.tsx の「用語集」タブを
+ *     2秒以内に5回連続タップすることのみ。
  *   - data/roles.ts のEXAMS/ROLESには一切登録されていないため、
  *     ホーム画面・/glossary・/progress・/qualifications/* には
  *     この画面・科目・カテゴリへの導線は一切出現しない。
