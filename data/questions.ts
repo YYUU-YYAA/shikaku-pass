@@ -15,6 +15,13 @@ import { QUESTIONS_GKENTEI_LAW_ETHICS } from './questions-g_kentei-law-ethics';
 import { QUESTIONS_KIKENKO_LAW } from './questions-kikenbutsu_ko-law';
 import { QUESTIONS_KIKENKO_CHEMISTRY_PHYSICS } from './questions-kikenbutsu_ko-chemistry-physics';
 import { QUESTIONS_KIKENKO_PROPERTIES } from './questions-kikenbutsu_ko-properties';
+import { QUESTIONS_VC_SECRET_BASICS_TERMS } from './questions-vc_secret-basics-terms';
+import { QUESTIONS_VC_SECRET_FUND_STRUCTURE } from './questions-vc_secret-fund-structure';
+import { QUESTIONS_VC_SECRET_STARTUP_FINANCE } from './questions-vc_secret-startup-finance';
+import { QUESTIONS_VC_SECRET_VALUATION_DEAL } from './questions-vc_secret-valuation-deal';
+import { QUESTIONS_VC_SECRET_DUE_DILIGENCE } from './questions-vc_secret-due-diligence';
+import { QUESTIONS_VC_SECRET_JAPAN_SYSTEM } from './questions-vc_secret-japan-system';
+import { QUESTIONS_VC_SECRET_NEWS_TRENDS } from './questions-vc_secret-news-trends';
 
 export const QUESTIONS = [
   ...QUESTIONS_FINANCIAL,
@@ -34,4 +41,11 @@ export const QUESTIONS = [
   ...QUESTIONS_KIKENKO_LAW,
   ...QUESTIONS_KIKENKO_CHEMISTRY_PHYSICS,
   ...QUESTIONS_KIKENKO_PROPERTIES,
+  ...QUESTIONS_VC_SECRET_BASICS_TERMS,
+  ...QUESTIONS_VC_SECRET_FUND_STRUCTURE,
+  ...QUESTIONS_VC_SECRET_STARTUP_FINANCE,
+  ...QUESTIONS_VC_SECRET_VALUATION_DEAL,
+  ...QUESTIONS_VC_SECRET_DUE_DILIGENCE,
+  ...QUESTIONS_VC_SECRET_JAPAN_SYSTEM,
+  ...QUESTIONS_VC_SECRET_NEWS_TRENDS,
 ];

@@ -30,11 +30,18 @@ export default function TopTabBar() {
     <View style={styles.bar}>
       {TABS.map((tab) => {
         const active = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href);
+        // 隠し導線: 用語集タブを1.5秒以上長押しすると、非公開のVCノート画面
+        // (/vc-notes) へ遷移する。通常のタップ(onPress)は従来通り
+        // /glossaryへの遷移として動作するため、普通の操作では発火しない。
+        // 出典: docs/meetings/2026-06-15-2051-hidden-vc-question-bank.md
+        const isHiddenTrigger = tab.key === 'glossary';
         return (
           <TouchableOpacity
             key={tab.key}
             style={styles.tab}
             onPress={() => router.push(tab.href)}
+            onLongPress={isHiddenTrigger ? () => router.push('/vc-notes') : undefined}
+            delayLongPress={isHiddenTrigger ? 1500 : undefined}
             activeOpacity={0.7}
           >
             <View style={[styles.iconWrap, active && styles.iconWrapActive]}>

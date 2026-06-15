@@ -220,6 +220,72 @@ const KIKENBUTSU_KO_SUBJECTS: ExamSubjectMeta[] = [
 ];
 
 // ---------------------------------------------------------------------
+// VC/スタートアップ 隠し問題集 (vc_secret)
+// 出典: docs/meetings/2026-06-15-2051-hidden-vc-question-bank.md
+//
+// 注意: このexamId('vc_secret')は data/roles.ts の EXAMS/ROLES には
+//   絶対に追加しないこと（追加するとホーム画面・/qualifications等の
+//   レーン一覧に表示されてしまう）。EXAM_SUBJECTSへの登録のみで、
+//   getSubjectMeta()による科目メタ情報の取得（隠しルートの表示用）と
+//   /quiz?subject=X&category=Y の動作に必要な分だけを満たす。
+//   getExamProgress()等はEXAMS側のexamIdを起点に呼ばれるため、
+//   'vc_secret'というexamIdがEXAMSに存在しない限り、
+//   ホーム/glossary/progress/qualifications側のループには一切現れない。
+// ---------------------------------------------------------------------
+
+const VC_SECRET_SUBJECTS: ExamSubjectMeta[] = [
+  {
+    key: 'vc_secret_basics_terms',
+    label: 'VC基礎・用語',
+    icon: '🔑',
+    theme: { accent: '#4F46E5', bg: '#EEF2FF', dark: '#312E81' },
+    categories: [{ key: 'VC基礎用語', label: 'VC基礎用語' }],
+  },
+  {
+    key: 'vc_secret_fund_structure',
+    label: 'ファンド構造・LP/GP',
+    icon: '🏦',
+    theme: { accent: '#0E7490', bg: '#ECFEFF', dark: '#164E63' },
+    categories: [{ key: 'ファンド構造とLP/GP', label: 'ファンド構造とLP/GP' }],
+  },
+  {
+    key: 'vc_secret_startup_finance',
+    label: 'スタートアップ財務・資金調達',
+    icon: '📊',
+    theme: { accent: '#15803D', bg: '#F0FDF4', dark: '#14532D' },
+    categories: [{ key: 'スタートアップ財務・資金調達', label: 'スタートアップ財務・資金調達' }],
+  },
+  {
+    key: 'vc_secret_valuation_deal',
+    label: 'バリュエーション・ディール実務',
+    icon: '💰',
+    theme: { accent: '#B45309', bg: '#FFFBEB', dark: '#78350F' },
+    categories: [{ key: 'バリュエーションとディール実務', label: 'バリュエーションとディール実務' }],
+  },
+  {
+    key: 'vc_secret_due_diligence',
+    label: 'デューデリジェンス・投資判断',
+    icon: '🔍',
+    theme: { accent: '#7C3AED', bg: '#F5F3FF', dark: '#4C1D95' },
+    categories: [{ key: 'デューデリジェンスと投資判断', label: 'デューデリジェンスと投資判断' }],
+  },
+  {
+    key: 'vc_secret_japan_vc_system',
+    label: '日本のVC・スタートアップ制度',
+    icon: '🗾',
+    theme: { accent: '#BE123C', bg: '#FFF1F2', dark: '#881337' },
+    categories: [{ key: '日本のVCとスタートアップ制度', label: '日本のVCとスタートアップ制度' }],
+  },
+  {
+    key: 'vc_secret_news_trends',
+    label: '最新トレンド・ニュース',
+    icon: '📰',
+    theme: { accent: '#0369A1', bg: '#F0F9FF', dark: '#0C4A6E' },
+    categories: [{ key: '最新トレンド・ニュース（2026年前半）', label: '最新トレンド・ニュース（2026年前半）' }],
+  },
+];
+
+// ---------------------------------------------------------------------
 // レジストリ本体
 // ---------------------------------------------------------------------
 
@@ -228,6 +294,7 @@ export const EXAM_SUBJECTS: Record<string, ExamSubjectMeta[]> = {
   kikenbutsu4: KIKENBUTSU4_SUBJECTS,
   g_kentei: G_KENTEI_SUBJECTS,
   kikenbutsu_ko: KIKENBUTSU_KO_SUBJECTS,
+  vc_secret: VC_SECRET_SUBJECTS,
 };
 
 /** 指定した資格の科目一覧を取得（未登録ならCMAにフォールバック） */

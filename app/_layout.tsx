@@ -90,6 +90,13 @@ export default function Layout() {
           headerShown: false,
         }}
       />
+      <Tabs.Screen
+        name="vc-notes"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
     </Tabs>
   );
 }
