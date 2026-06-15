@@ -47,10 +47,10 @@ export default function QuizScreen() {
   const { saved, saveQuestion, removeQuestion, isSaved } = useSavedQuestions();
 
   // ── Question list initialization ─────────────────────���──────────────────────
-  // 「一通り出題してから2周目・3周目に進む」ため、最後に解答した日時が古い
-  // （未解答含む）問題を優先して出題する。
+  // 「一通り出題してから2周目・3周目に進む」ため、未解答→不正解→正解済みの
+  // 順で優先して出題する。
   function buildNormalQuestions() {
-    return getLeastRecentQuestions(QUIZ_SIZE, stats.lastAnsweredAtByQuestionId);
+    return getLeastRecentQuestions(QUIZ_SIZE, stats.lastAnsweredAtByQuestionId, stats.weakQuestionIds);
   }
 
   function buildSingleQuestion() {
@@ -277,7 +277,9 @@ export default function QuizScreen() {
         <Text style={styles.resultRate}>正答率 {rate}%</Text>
         {rate === 100 && <Text style={styles.perfectText}>完璧です！</Text>}
         <TouchableOpacity style={styles.button} onPress={resetQuiz}>
-          <Text style={styles.buttonText}>もう一度</Text>
+          <Text style={styles.buttonText}>
+            {isReviewMode || isSavedMode || isStatusMode || isSingleMode ? 'もう一度' : '次の問題へ'}
+          </Text>
         </TouchableOpacity>
         {!isReviewMode && !isSavedMode && !isSingleMode && stats.weakQuestionIds.length > 0 && (
           <TouchableOpacity

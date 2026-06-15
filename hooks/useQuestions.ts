@@ -30,17 +30,38 @@ export function useQuestions(options: UseQuestionsOptions = {}) {
 
   /**
    * 「一通り出題してから2周目・3周目に進む」ための出題順。
-   * 最後に解答した日時が古い（＝未解答を含む）問題ほど先に出題されるよう並べ、
-   * 同じ優先度の問題同士はランダムな順序にする。
+   * 優先度は 未解答 → 不正解（苦手） → 正解済み の3段階。
+   * 未解答が残っている間は解答済みの問題を出さず、不正解の問題が残っている間は
+   * 正解済みの問題を出さない。各段階内はランダム順（不正解・正解は解答日時が
+   * 古いものを先に）にする。
    */
-  function getLeastRecentQuestions(count: number, lastAnsweredAt: Record<string, string>): Question[] {
+  function getLeastRecentQuestions(
+    count: number,
+    lastAnsweredAt: Record<string, string>,
+    weakQuestionIds: string[] = [],
+  ): Question[] {
+    const weakSet = new Set(weakQuestionIds);
     const shuffled = [...questions].sort(() => Math.random() - 0.5);
-    const sorted = shuffled.sort((a, b) => {
+
+    const byRecency = (a: Question, b: Question) => {
       const aTime = lastAnsweredAt[a.id] ?? '';
       const bTime = lastAnsweredAt[b.id] ?? '';
       return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
-    });
-    return sorted.slice(0, Math.min(count, sorted.length));
+    };
+
+    const unanswered: Question[] = [];
+    const incorrect: Question[] = [];
+    const correct: Question[] = [];
+    for (const q of shuffled) {
+      if (!(q.id in lastAnsweredAt)) unanswered.push(q);
+      else if (weakSet.has(q.id)) incorrect.push(q);
+      else correct.push(q);
+    }
+    incorrect.sort(byRecency);
+    correct.sort(byRecency);
+
+    const ordered = [...unanswered, ...incorrect, ...correct];
+    return ordered.slice(0, Math.min(count, ordered.length));
   }
 
   return { questions, getRandomQuestions, getLeastRecentQuestions };
