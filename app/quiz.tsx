@@ -126,6 +126,30 @@ export default function QuizScreen() {
   const [correctLabel, setCorrectLabel]       = useState<'A' | 'B' | 'C' | 'D'>('A');
   const startTime = useRef(Date.now());
 
+  // ── 演習設定（mode/subject/category/...）が変わったら状態をリセットする ──────
+  // quizタブはシングルトンのスクリーンインスタンスのため、別の演習へ遷移しても
+  // コンポーネントは再マウントされずstateが前回の演習のまま残る
+  // （演習を中断して別の演習を始めると、中断した方の続きが表示されてしまう）。
+  // mode/subject/category等の組み合わせが変わったら初期状態へリセットする。
+  const quizKey = [mode, subject, category, status, examId, questionId].join('|');
+  const quizKeyRef = useRef(quizKey);
+
+  useEffect(() => {
+    if (quizKeyRef.current === quizKey) return;
+    quizKeyRef.current = quizKey;
+    setQuestions(isSingleMode ? buildSingleQuestion() : null);
+    setInitialized(isSingleMode);
+    setCurrentIndex(0);
+    setAnswered(false);
+    setIsCorrect(false);
+    setSelectedKey(null);
+    setCorrectCount(0);
+    setConsecutiveWrong(0);
+    setFinished(false);
+    setCorrectLabel('A');
+    startTime.current = Date.now();
+  }, [quizKey, isSingleMode]);
+
   const subjectTitle = subjectFilter ? (getSubjectMeta(subjectFilter)?.label ?? subjectFilter) : '全科目';
   const modeLabel = isSingleMode ? '1問演習'
     : isReviewMode ? '苦手問題' : isMemoMode ? '📌 念のため保存' : isRetryMode ? '🔁 苦手リスト'
